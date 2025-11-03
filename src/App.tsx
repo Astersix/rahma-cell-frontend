@@ -1,8 +1,8 @@
-function App() {
+import Router from './routes/Router'
+
+const App = () => {
   return (
-    <>
-      <h2 className="text-2xl font-bold">Hello World</h2>
-    </>
+    <Router />
   )
 }
 
