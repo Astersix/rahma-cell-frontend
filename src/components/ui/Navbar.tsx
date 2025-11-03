@@ -1,18 +1,19 @@
 const Navbar = () => {
 	return (
-		<header className="w-full border-b border-neutral-200 bg-white">
+		<header className="w-full border-b border-neutral-200 bg-black">
 			<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
 				<div className="flex items-center gap-2">
-					<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-black text-white">
+					<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-black">
 						<span className="text-lg font-bold">RC</span>
 					</div>
-					<span className="text-lg font-semibold">CV Rahma Cell</span>
+					<span className="text-lg font-semibold text-white">CV Rahma Cell</span>
 				</div>
 				<nav className="hidden items-center gap-6 text-sm text-neutral-700 md:flex">
-					<a href="#" className="hover:text-black">Home</a>
-					<a href="#" className="hover:text-black">Kategori</a>
-					<a href="#" className="hover:text-black">Layanan</a>
-					<a href="#" className="hover:text-black">Kontak</a>
+					<a href="#" className="hover:font-semibold text-white">Beranda</a>
+                    <a href="#" className="hover:font-semibold text-white">Produk</a>
+					<a href="#" className="hover:font-semibold text-white">Kategori</a>
+					<a href="#" className="hover:font-semibold text-white">Tentang Kami</a>
+					<a href="#" className="hover:font-semibold text-white">Kontak</a>
 				</nav>
 				<div className="md:hidden">
 					<button aria-label="Open Menu" className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-neutral-200">

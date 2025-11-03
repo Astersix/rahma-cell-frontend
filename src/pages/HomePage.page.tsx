@@ -1,15 +1,12 @@
-import Navbar from '../components/ui/Navbar'
-import Footer from '../components/ui/Footer'
+import MainLayout from '../layouts/MainLayout'
 import Card from '../components/ui/Card'
 import Input from '../components/ui/Input'
 import Button from '../components/ui/Button'
 
 const HomePage = () => {
 	return (
-		<>
-			<Navbar />
-
-			<main className="mx-auto max-w-7xl space-y-8 px-4 py-10 md:px-6">
+		<MainLayout>
+			<div className="space-y-8">
 				<h1 className="text-2xl font-bold">Home Page</h1>
 
 				<section className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -43,10 +40,8 @@ const HomePage = () => {
 						</div>
 					</Card>
 				</section>
-			</main>
-
-			<Footer />
-		</>
+			</div>
+		</MainLayout>
 	)
 }
 

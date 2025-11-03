@@ -36,7 +36,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 				<input
 					id={inputId}
 					ref={ref}
-					className={cn(base, variant === 'normal' ? normal : error, className)}
+					className={cn(base, "p-3", variant === 'normal' ? normal : error, className)}
 					{...props}
 				/>
 				{helperText && (
