@@ -9,7 +9,7 @@ function cn(...parts: Array<string | false | null | undefined>) {
 
 const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 	return (
-		<header className={cn('w-full border-b border-neutral-200 bg-white', className)}>
+		<header className={cn('sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/90', className)}>
 			<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
 				{/* Brand */}
 				<div className="flex items-center gap-2">

@@ -4,17 +4,19 @@ import Footer from '../components/ui/Footer'
 
 export interface MainLayoutProps extends PropsWithChildren {
 	className?: string
+	navbarVariant?: 'dark' | 'light'
 }
 
 function cn(...parts: Array<string | false | null | undefined>) {
 	return parts.filter(Boolean).join(' ')
 }
 
-const MainLayout = ({ children, className }: MainLayoutProps) => {
+const MainLayout = ({ children, className, navbarVariant = 'light' }: MainLayoutProps) => {
 	return (
 		<div className={cn('min-h-screen flex flex-col bg-white text-black', className)}>
-			<Navbar />
-			<main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 md:px-6">
+			<Navbar variant={navbarVariant} />
+			{/* top padding to offset fixed navbar height */}
+			<main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 pt-20 md:px-6">
 				{children}
 			</main>
 			<Footer />
