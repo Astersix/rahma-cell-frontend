@@ -1,15 +1,17 @@
 import ButtonIcon from './ButtonIcon'
+import type { ReactNode } from 'react'
 type NavbarVariant = 'dark' | 'light'
 
 interface NavbarProps {
 	variant?: NavbarVariant
+	rightSlot?: ReactNode
 }
 
 function cn(...parts: Array<string | false | null | undefined>) {
 	return parts.filter(Boolean).join(' ')
 }
 
-const Navbar = ({ variant = 'dark' }: NavbarProps) => {
+const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
 	const isLight = variant === 'light'
 
 	return (
@@ -31,6 +33,9 @@ const Navbar = ({ variant = 'dark' }: NavbarProps) => {
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Tentang Kami</a>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Kontak</a>
 				</nav>
+				<div className="hidden items-center gap-3 md:flex">
+					{rightSlot}
+				</div>
 				<div className="md:hidden">
 					<ButtonIcon
 						aria-label="Open Menu"

@@ -1,20 +1,21 @@
-import type { PropsWithChildren } from 'react'
+import type { PropsWithChildren, ReactNode } from 'react'
 import Navbar from '../components/ui/Navbar'
 import Footer from '../components/ui/Footer'
 
 export interface MainLayoutProps extends PropsWithChildren {
 	className?: string
 	navbarVariant?: 'dark' | 'light'
+	navbarRight?: ReactNode
 }
 
 function cn(...parts: Array<string | false | null | undefined>) {
 	return parts.filter(Boolean).join(' ')
 }
 
-const MainLayout = ({ children, className, navbarVariant = 'light' }: MainLayoutProps) => {
+const MainLayout = ({ children, className, navbarVariant = 'light', navbarRight }: MainLayoutProps) => {
 	return (
 		<div className={cn('min-h-screen flex flex-col bg-white text-black', className)}>
-			<Navbar variant={navbarVariant} />
+			<Navbar variant={navbarVariant} rightSlot={navbarRight} />
 			{/* top padding to offset fixed navbar height */}
 			<main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 pt-20 md:px-6">
 				{children}

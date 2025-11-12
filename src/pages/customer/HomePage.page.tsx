@@ -1,11 +1,33 @@
-import MainLayout from '../layouts/MainLayout'
-import Card from '../components/ui/Card'
-import Input from '../components/ui/Input'
-import Button from '../components/ui/Button'
+import MainLayout from '../../layouts/MainLayout'
+import Card from '../../components/ui/Card'
+import Input from '../../components/ui/Input'
+import Button from '../../components/ui/Button'
+import ButtonIcon from '../../components/ui/ButtonIcon'
+import { useAuthStore } from '../../store/auth.store'
+import { useNavigate } from 'react-router-dom'
 
 const HomePage = () => {
+	const { logout } = useAuthStore()
+	const navigate = useNavigate()
+
+	function handleLogout() {
+		logout()
+		navigate('/landing')
+	}
+
 	return (
-		<MainLayout>
+		<MainLayout
+			navbarRight={
+				<ButtonIcon
+					variant="light"
+					icon="logout"
+					onClick={handleLogout}
+					className="border border-neutral-300"
+				>
+					<span className="hidden sm:inline">Keluar</span>
+				</ButtonIcon>
+			}
+		>
 			<div className="space-y-8">
 				<h1 className="text-2xl font-bold">Home Page</h1>
 

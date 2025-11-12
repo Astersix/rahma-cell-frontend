@@ -25,13 +25,14 @@ const RegisterPage = () => {
         setError(null)
         setLoading(true)
         try {
-            // backend may expect phone; currently not part of service payload
-            await register({ name, email, password })
-            // Auto-login as user (adjust if backend returns role)
+            // Register payload
+            await register({ name, phone, email, password, role: 'customer' })
             loginAsUser()
-            navigate('/HomePage')
+            navigate('/homepage')
         } catch (err: any) {
-            setError(err?.response?.data?.message || 'Registrasi gagal. Coba lagi.')
+            // err may be the normalized object thrown from the service
+            const message = err?.message || err?.data?.message || 'Registrasi gagal. Coba lagi.'
+            setError(message)
         } finally {
             setLoading(false)
         }
@@ -111,7 +112,7 @@ const RegisterPage = () => {
                         <Button
                             type="submit"
                             fullWidth
-                            disabled={!agree || loading || !name || !email || !password}
+                            disabled={!agree || loading || !name || !phone || !email || !password}
                             className="rounded-md bg-red-500 hover:bg-red-600 active:bg-red-700 disabled:opacity-50"
                         >
                             {loading ? 'Memproses...' : 'Daftar'}

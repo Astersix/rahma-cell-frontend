@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children, redirectTo = '/login', allowedRoles }: Prote
 
 	// If roles are specified, enforce them
 	if (allowedRoles && (!role || !allowedRoles.includes(role))) {
-		return <Navigate to="/HomePage" replace />
+		return <Navigate to="/landing" replace />
 	}
 
 	return <>{children}</>

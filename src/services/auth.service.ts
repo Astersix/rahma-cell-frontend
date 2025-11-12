@@ -1,12 +1,14 @@
 import axios from 'axios'
 
-// Placeholder base URL. Replace with your actual API URL or set VITE_API_BASE_URL in .env
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.example.com'
+// prefer env var without trailing slash; fallback to localhost API
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:5000/api'
 
 const api = axios.create({
 	baseURL: API_BASE_URL,
-	// Enable if your API uses cookies/sessions
 	withCredentials: false,
+	headers: {
+		'Content-Type': 'application/json',
+	},
 })
 
 export type LoginPayload = {
@@ -16,11 +18,12 @@ export type LoginPayload = {
 
 export type RegisterPayload = {
 	name: string
+	phone: string
 	email: string
 	password: string
+	role: 'customer' | string
 }
 
-// Adjust this to your backend's response shape when available
 export type AuthResponse = {
 	token?: string
 	user?: {
@@ -33,15 +36,34 @@ export type AuthResponse = {
 	[key: string]: unknown
 }
 
+function normalizeAxiosError(err: unknown) {
+	if (axios.isAxiosError(err)) {
+		const axiosErr = err
+		return {
+			message: axiosErr.response?.data?.message || axiosErr.message,
+			status: axiosErr.response?.status,
+			data: axiosErr.response?.data,
+		}
+	}
+	return { message: String(err) }
+}
+
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
-	// Endpoint path is a placeholder; update when backend is ready
-	const res = await api.post<AuthResponse>('/auth/login', payload)
-	return res.data
+	try {
+		const res = await api.post<AuthResponse>('/auth/login', payload)
+		return res.data
+	} catch (err) {
+		const info = normalizeAxiosError(err)
+		throw info
+	}
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthResponse> {
-	// Endpoint path is a placeholder; update when backend is ready
-	const res = await api.post<AuthResponse>('/auth/register', payload)
-	return res.data
+	try {
+		const res = await api.post<AuthResponse>('/auth/register', payload)
+		return res.data
+	} catch (err) {
+		const info = normalizeAxiosError(err)
+		throw info
+	}
 }
-
