@@ -7,7 +7,21 @@ function cn(...parts: Array<string | false | null | undefined>) {
 	return parts.filter(Boolean).join(' ')
 }
 
+import { useAuthStore } from '../../store/auth.store'
+import { useNavigate } from 'react-router-dom'
+
 const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
+	const { logout } = useAuthStore()
+	const navigate = useNavigate()
+
+	function handleLogout() {
+		if (onLogout) {
+			onLogout()
+			return
+		}
+		logout()
+		navigate('/landing')
+	}
 	return (
 		<header className={cn('sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/90', className)}>
 			<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
@@ -27,7 +41,7 @@ const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 				<button
 					type="button"
 					aria-label="Logout"
-					onClick={onLogout}
+					onClick={handleLogout}
 					className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100"
 				>
 					{/* logout icon */}

@@ -22,13 +22,12 @@ const LoginPage = () => {
 		setLoading(true)
 		try {
 			const data = await login({ email, password })
-			// Decide role based on response; fallback to 'user'
 			const role = (data.user?.role === 'admin') ? 'admin' : 'user'
 			if (role === 'admin') loginAsAdmin(); else loginAsUser()
-			// Navigate after successful login
-			navigate(role === 'admin' ? '/admin/dashboard' : '/HomePage')
+			navigate(role === 'admin' ? '/admin/dashboard' : '/homepage')
 		} catch (err: any) {
-			setError(err?.response?.data?.message || 'Gagal masuk. Coba lagi.')
+			const message = err?.message || err?.data?.message || 'Gagal masuk. Coba lagi.'
+			setError(message)
 		} finally {
 			setLoading(false)
 		}
