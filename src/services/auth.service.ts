@@ -1,6 +1,5 @@
 import axios from 'axios'
 
-// prefer env var without trailing slash; fallback to localhost API
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:5000/api'
 
 const api = axios.create({
