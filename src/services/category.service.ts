@@ -1,7 +1,10 @@
 import axios from 'axios'
 
-// API base (reuse env or fallback)
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:5000/api'
+// API base (reuse env or fallback) with normalization
+const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
+const API_BASE_URL = RAW_BASE
+	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
+	: 'http://localhost:5000/api'
 
 const api = axios.create({
 	baseURL: API_BASE_URL,

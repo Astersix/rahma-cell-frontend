@@ -26,7 +26,7 @@ const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
 					</div>
 					<span className={cn('text-lg font-semibold', isLight ? 'text-black' : 'text-white')}>CV Rahma Cell</span>
 				</div>
-				<nav className="hidden items-center gap-6 text-sm md:flex">
+				<nav className={cn('hidden items-center gap-6 text-sm md:flex md:ml-auto', isLight ? 'text-black' : 'text-white')}>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Beranda</a>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Produk</a>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Kategori</a>

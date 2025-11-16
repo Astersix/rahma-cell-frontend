@@ -6,6 +6,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { getAllProduct, type Product } from '../../services/product.service'
 import { getAllCategories } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
+import { Link } from 'react-router-dom'
 
 const HomePage = () => {
 	const [category, setCategory] = useState<string>('all')
@@ -23,7 +24,12 @@ const HomePage = () => {
 			setErrorProducts(null)
 			try {
 				const res = await getAllProduct()
-				setProducts(res.data || [])
+				const list = (res.data || []).map((p: any) => ({
+					...p,
+					id: String(p.id ?? p.product_id ?? p.productId ?? p.ulid ?? p.uid ?? ''),
+					category_id: String(p.category_id ?? p.categoryId ?? ''),
+				}))
+				setProducts(list)
 			} catch (err: any) {
 				setErrorProducts(err.message || 'Gagal memuat produk')
 			} finally {
@@ -83,8 +89,10 @@ const HomePage = () => {
 						{loadingProducts && <p className="text-sm text-neutral-500">Memuat produk...</p>}
 						{errorProducts && <p className="text-sm text-red-600">{errorProducts}</p>}
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-							{filtered.map(product => (
-								<Card key={product.id} className="p-0 overflow-hidden">
+							{filtered.map((product) => {
+								const pid = (product as any)?.id ?? (product as any)?._id ?? (product as any)?.product_id
+								const card = (
+								<Card className="p-0 overflow-hidden">
 									<div className="h-32 w-full bg-neutral-100 flex items-center justify-center text-neutral-400 text-xs">
 										{/* No image in schema; placeholder with name initial */}
 										<span>{product.name.slice(0, 16)}</span>
@@ -94,7 +102,17 @@ const HomePage = () => {
 										<p className="text-[11px] text-neutral-500 line-clamp-2 min-h-[2.2rem]">{product.description}</p>
 									</div>
 								</Card>
-							))}
+								)
+								return pid ? (
+									<Link to={`/product/${encodeURIComponent(String(pid))}`} key={String(pid)} className="block">
+										{card}
+									</Link>
+								) : (
+									<div key={`no-id-${product.name}`}>
+										{card}
+									</div>
+								)
+							})}
 						</div>
 					</div>
 				</div>
