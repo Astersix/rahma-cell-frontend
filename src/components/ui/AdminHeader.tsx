@@ -24,7 +24,7 @@ const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 	}
 	return (
 		<header className={cn('sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/90', className)}>
-			<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-4">
+			<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
 				{/* Brand */}
 				<div className="flex items-center gap-2">
 					<div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', 'bg-black text-white')}>

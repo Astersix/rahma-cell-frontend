@@ -263,3 +263,20 @@ export async function addProductVariant(productId: string, dto: AddVariantDTO, t
 		throw normalizeAxiosError(err)
 	}
 }
+
+// IMPORT: CSV/Excel file (admin)
+export async function importProducts(file: File, token?: string): Promise<ApiResponse<{ imported: number } | unknown>> {
+	try {
+		const form = new FormData()
+		form.append('file', file)
+		const res = await api.post<any>(`/product/import`, form, {
+			headers: {
+				...(authHeaders(token) || {}),
+				'Content-Type': 'multipart/form-data',
+			},
+		})
+		return { data: res.data, message: (res.data && (res.data.message || res.data?.msg)) }
+	} catch (err) {
+		throw normalizeAxiosError(err)
+	}
+}

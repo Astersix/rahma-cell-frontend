@@ -13,7 +13,7 @@ const AdminAddProductPage = () => {
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [categories, setCategories] = useState<Category[]>([])
-  // Variants builder state
+  // Variant image URLs (entered manually per variant)
   type NewImage = { image_url: string; is_thumbnail?: boolean }
   type NewVariant = { variant_name: string; price: number | ''; stock: number | ''; images: NewImage[] }
   const [variants, setVariants] = useState<NewVariant[]>([
@@ -76,8 +76,12 @@ const AdminAddProductPage = () => {
   return (
     <AdminLayout sidebarActive="products">
       <div className="mx-auto max-w-4xl">
-        <button className="mb-4 text-sm text-neutral-600 hover:text-black" onClick={() => navigate(-1)}>&larr; Kembali</button>
-        <div className="mb-2 text-2xl font-semibold text-black">Tambah Produk</div>
+        <div className="flex gap-1 items-center mb-2">
+          <button className="inline-flex items-center justify-center h-8 hover:text-neutral-600 text-2xl font-semibold text-black"
+            onClick={() => navigate(-1)}>
+            &larr; Tambah Produk
+          </button>
+        </div>
         <p className="mb-6 text-sm text-neutral-600">Masukkan informasi lengkap untuk menambahkan produk baru ke katalog.</p>
 
         <Card>
@@ -108,10 +112,10 @@ const AdminAddProductPage = () => {
               </select>
             </div>
 
-            {/* Gambar Produk - per varian */}
+            {/* Gambar Produk per varian (URL) */}
             <div>
-              <div className="mb-2 text-sm font-semibold text-black">Gambar Produk</div>
-              <p className="mb-3 text-xs text-neutral-600">Unggah 1–6 gambar URL untuk setiap varian. Tandai salah satu sebagai thumbnail.</p>
+              <div className="mb-2 text-sm font-semibold text-black">Gambar Produk per Varian</div>
+              <p className="mb-3 text-xs text-neutral-600">Masukkan URL gambar untuk setiap varian (1–6), tandai satu sebagai thumbnail.</p>
               {variants.map((v, vi) => (
                 <div key={vi} className="mb-4 rounded-md border border-neutral-200 p-3">
                   <div className="mb-2 text-xs font-medium text-neutral-700">Varian #{vi + 1} - Gambar</div>

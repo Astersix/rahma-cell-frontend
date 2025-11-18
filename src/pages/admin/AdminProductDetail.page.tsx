@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button'
 import DeleteProductPopup from '../../components/ui/DeleteProductPopup'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { deleteProduct, getProductById, getVariantsByProductId, type ProductVariant } from '../../services/product.service'
+import { deleteProductWithVariants, getProductById, getVariantsByProductId, type ProductVariant } from '../../services/product.service'
 import { useAuthStore } from '../../store/auth.store'
 import { getCategoryById } from '../../services/category.service'
 
@@ -20,6 +20,7 @@ const AdminProductDetailPage = () => {
   const [showDelete, setShowDelete] = useState(false)
   const [deleting] = useState(false)
   const [variants, setVariants] = useState<ProductVariant[]>([])
+  const [mainImageUrl, setMainImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -32,10 +33,18 @@ const AdminProductDetailPage = () => {
         setName(p?.name ?? '')
         setDescription(p?.description ?? '')
         const catId = p?.category_id ?? ''
-        // fetch variants for this product
         const vres = await getVariantsByProductId(id as string, token || undefined)
-        setVariants(vres.data || [])
-        // fetch category name (admin endpoint)
+        const vs = vres.data || []
+        setVariants(vs)
+        // derive main image: first thumbnail among variants; fallback first image of first variant
+        let main: string | null = null
+        for (const v of vs) {
+          if (Array.isArray(v.product_image) && v.product_image.length) {
+            const thumb = v.product_image.find(img => img.is_thumbnail) || v.product_image[0]
+            if (thumb?.image_url) { main = thumb.image_url; break }
+          }
+        }
+        setMainImageUrl(main)
         if (catId) {
           try {
             const cres = await getCategoryById(String(catId), token || undefined)
@@ -58,28 +67,29 @@ const AdminProductDetailPage = () => {
   function confirmDelete() {
     if (!id) return
     setShowDelete(false)
-    // Navigate immediately to the products list
     navigate('/admin/products', { state: { refreshAfter: 'delete', deletedId: id } })
-    // Fire-and-forget deletion in the background
-    deleteProduct(id, token || undefined).catch(() => {
-      // Optionally report through a global toast/log; ignored here to keep UX snappy
+    deleteProductWithVariants(id, token || undefined).catch(() => {
     })
   }
 
   return (
     <AdminLayout sidebarActive="products">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <button className="mb-2 text-sm text-neutral-600 hover:text-black" onClick={() => navigate(-1)}>&larr; Kembali</button>
-            <h1 className="text-2xl font-semibold text-black">Detail Produk</h1>
-            <p className="mt-1 text-sm text-neutral-600">Lihat detail produk dan prediksi kebutuhan stok.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button onClick={() => navigate(`/admin/products/${encodeURIComponent(id || '')}/edit`)} className="text-black border border-neutral-300 hover:bg-neutral-50">Edit Produk</Button>
-            <Button onClick={() => setShowDelete(true)} className="bg-red-500 hover:bg-red-600 active:bg-red-700 border border-red-300">Hapus Produk</Button>
-          </div>
+      <div className="mx-auto max-w-4xl">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-1 items-center mb-2">
+          <button className="inline-flex items-center justify-center h-8 hover:text-neutral-600 text-2xl font-semibold text-black"
+            onClick={() => navigate(-1)}>
+            &larr; Detail Produk
+          </button>
         </div>
+
+        <div className="flex items-center gap-3">
+          <Button onClick={() => navigate(`/admin/products/${encodeURIComponent(id || '')}/edit`)} className="text-black border border-neutral-300 hover:bg-neutral-50">Edit Produk</Button>
+          <Button onClick={() => setShowDelete(true)} className="bg-red-500 hover:bg-red-600 active:bg-red-700 border border-red-300">Hapus Produk</Button>
+        </div>
+        </div>
+
+        <p className="flex mt-1 text-sm text-neutral-600 mb-6">Lihat detail produk dan prediksi kebutuhan stok.</p>
 
         {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
         {loading && <p className="mb-4 text-sm text-neutral-500">Memuat...</p>}
@@ -88,7 +98,9 @@ const AdminProductDetailPage = () => {
           {/* Informasi Produk */}
           <Card>
             <div className="grid grid-cols-[120px_1fr] gap-4">
-              <div className="flex h-24 w-24 items-center justify-center rounded-md bg-neutral-100 text-xs text-neutral-500">Product Image</div>
+              <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-md bg-neutral-100 text-xs text-neutral-500">
+                {mainImageUrl ? <img src={mainImageUrl} alt={name} className="h-full w-full object-cover" /> : 'Product Image'}
+              </div>
               <div className="space-y-2">
                 <div>
                   <div className="text-xs text-neutral-500">Nama Produk</div>
@@ -141,11 +153,16 @@ const AdminProductDetailPage = () => {
             )}
           </Card>
 
-          {/* Gambar Produk (placeholder grid) */}
+          {/* Gambar Produk (variant thumbnails) */}
           <Card className="md:col-span-1">
             <div className="mb-3 text-sm font-semibold text-neutral-800">Gambar Produk</div>
             <div className="grid grid-cols-5 gap-3">
-              {Array.from({ length: 5 }).map((_, i) => (
+              {variants.flatMap(v => (v.product_image || []).map(img => img)).slice(0,5).map((img, i) => (
+                <div key={img.id || i} className={`h-16 overflow-hidden rounded-md ${img.is_thumbnail ? 'ring-1 ring-red-500' : ''}`}>
+                  {img.image_url ? <img src={img.image_url} alt={String(i)} className="h-full w-full object-cover" /> : null}
+                </div>
+              ))}
+              {variants.length === 0 && Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className={`h-16 rounded-md ${i === 0 ? 'ring-1 ring-red-500' : 'bg-neutral-100'}`}></div>
               ))}
             </div>
