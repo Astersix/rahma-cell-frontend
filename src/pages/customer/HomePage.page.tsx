@@ -1,6 +1,5 @@
-import MainLayout from '../../layouts/MainLayout'
+import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
-import CustomerHeader from '../../components/ui/CustomerHeader'
 import ProductCategory, { type CategoryItem } from '../../components/ui/ProductCategory'
 import { useState, useMemo, useEffect } from 'react'
 import { getAllProduct, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
@@ -83,8 +82,8 @@ const HomePage = () => {
 		return products.filter(p => p.category_id === category)
 	}, [category, products])
 
-	return (
-		<MainLayout headerComponent={<CustomerHeader />} headerFixed={true}>
+		return (
+		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
 				<div className="grid gap-8 md:grid-cols-[250px_1fr]">
 					{/* Category Sidebar */}
@@ -139,7 +138,7 @@ const HomePage = () => {
 					</div>
 				</div>
 			</div>
-		</MainLayout>
+		</CustomerLayout>
 	)
 }
 

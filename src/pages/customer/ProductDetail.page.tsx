@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import MainLayout from '../../layouts/MainLayout'
-import CustomerHeader from '../../components/ui/CustomerHeader'
+import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import { getProductById, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
 import { useCartStore } from '../../store/cart.store'
@@ -110,7 +109,7 @@ const ProductDetailPage = () => {
 	}
 
 	return (
-		<MainLayout headerComponent={<CustomerHeader />} headerFixed={true}>
+		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
 				{/* Breadcrumb */}
 				<nav className="mb-4 text-xs text-neutral-500">
@@ -239,7 +238,7 @@ const ProductDetailPage = () => {
 					</div>
 				)}
 			</div>
-		</MainLayout>
+		</CustomerLayout>
 	)
 }
 

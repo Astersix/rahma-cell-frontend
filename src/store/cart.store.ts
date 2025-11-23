@@ -23,7 +23,7 @@ interface CartState {
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
-      items: [],
+      items: [], loading: false,
       addItem: (item, quantity = 1) => {
         const key = `${item.productId}:${item.variantId}`
         const items = [...get().items]

@@ -71,6 +71,14 @@ const CustomerHeader = ({
 		navigate('/orders')
 		setOpen(false)
 	}
+
+	function handleCart() {
+		if (onCartClick) {
+			onCartClick()
+		} else {
+			navigate('/cart')
+		}
+	}
 	const isLight = variant === 'light'
 	const isDark = variant === 'dark'
 
@@ -153,7 +161,7 @@ const CustomerHeader = ({
 					{/* Cart */}
 						<button
 							type="button"
-							onClick={onCartClick}
+							onClick={handleCart}
 							aria-label="Keranjang"
 							className={cn('relative', isDark ? 'text-neutral-300 hover:text-white' : 'text-neutral-700 hover:text-black')}
 						>
