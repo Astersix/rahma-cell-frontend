@@ -84,11 +84,10 @@ function normalizeAxiosError(err: unknown) {
 }
 
 function authHeaders(token?: string) {
-	return token
-		? {
-			  Authorization: `Bearer ${token}`,
-		  }
-		: undefined
+	if (!token) return undefined
+	const raw = String(token)
+	const t = raw.replace(/^Bearer\s+/i, '')
+	return { Authorization: `Bearer ${t}` }
 }
 
 // Utility to extract an array of objects from various response shapes

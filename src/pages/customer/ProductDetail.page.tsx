@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import { getProductById, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
-import { useCartStore } from '../../store/cart.store'
+import { addItemToCart, getCartByUserId } from '../../services/cart.service'
+import { getMyProfile } from '../../services/user.service'
+import { useAuthStore } from '../../store/auth.store'
 
 const PlaceholderImage = () => (
 	<div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-100 text-neutral-400">
@@ -20,7 +22,7 @@ const ProductDetailPage = () => {
 	const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null)
 	const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
 	const [qty, setQty] = useState<number>(1)
-	const addToCart = useCartStore((s) => s.addItem)
+	const token = useAuthStore(s => s.token || undefined)
 	const [actionMsg, setActionMsg] = useState<string | null>(null)
 
 	useEffect(() => {
@@ -83,22 +85,28 @@ const ProductDetailPage = () => {
 		setQty((q) => Math.max(1, q - 1))
 	}
 
-	function doAddToCart() {
+	async function doAddToCart() {
 		if (!product || !selectedVariant) return
-		addToCart(
-			{
-				productId: String(product.id),
-				productName: product.name,
-				variantId: String(selectedVariant.id),
-				variantName: selectedVariant.variant_name,
-				price: selectedVariant.price,
-				imageUrl: selectedImageUrl || undefined,
-				quantity: qty,
-			},
-			qty,
-		)
-		setActionMsg('Ditambahkan ke keranjang')
-		setTimeout(() => setActionMsg(null), 1500)
+		if (!token) {
+			setActionMsg('Silakan login untuk menambahkan ke keranjang')
+			setTimeout(() => setActionMsg(null), 1500)
+			return
+		}
+		try {
+			const me = await getMyProfile(token)
+			const userId = me.id
+			// Ensure cart exists and retrieve its id (flow requirement)
+			const cart = await getCartByUserId(userId, token)
+			const cartId = cart.id // currently not required by endpoint, but kept for flow clarity
+			await addItemToCart(userId, { product_variant_id: String(selectedVariant.id), quantity: qty }, token)
+			// Refresh cart after adding
+			await getCartByUserId(userId, token)
+			setActionMsg('Ditambahkan ke keranjang')
+		} catch (err: any) {
+			setActionMsg(err?.message || 'Gagal menambahkan ke keranjang')
+		} finally {
+			setTimeout(() => setActionMsg(null), 1500)
+		}
 	}
 
 	function doBuyNow() {
