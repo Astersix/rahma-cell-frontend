@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { create } from 'zustand';
 
 
@@ -13,7 +14,7 @@ interface CartState {
   items: CartItem[];
   isLoading: boolean;
   fetchCart: () => Promise<void>;
-  clearCart: () => void; // Required for Task 4.8 Logic
+  clearCart: () => void;
   totalPrice: () => number;
 }
 
@@ -22,10 +23,29 @@ export const useCartStore = create<CartState>((set, get) => ({
   isLoading: false,
 
   fetchCart: async () => {
-    // Logic fetch existing (Task 4.6)
+    set({ isLoading: true });
+    try {
+      const token = localStorage.getItem('token'); // Ambil token user yg login
+      const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+      // Panggil API dari backend
+      const response = await axios.get(`${API_URL}/cart/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      // Masukkan data dari backend ke state
+      // (Asumsi backend kirim array produk di response.data.items atau response.data)
+      set({ items: response.data.items || response.data });
+      
+    } catch (error) {
+      console.error("Gagal mengambil keranjang:", error);
+    } finally {
+      set({ isLoading: false });
+    }
   },
 
-  // Digunakan setelah pembayaran sukses
   clearCart: () => set({ items: [] }),
 
   totalPrice: () => {
