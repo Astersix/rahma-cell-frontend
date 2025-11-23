@@ -3,7 +3,6 @@ import Card from "../components/ui/Card"
 import MainLayout from "../layouts/MainLayout"
 import heroImg from "../assets/hero-img.png"
 
-// Tiny inline icons for categories/badges to avoid extra deps
 const Icon = ({ name, className = "w-5 h-5" }: { name: 'phone' | 'headphone' | 'bolt' | 'plug' | 'home' | 'pen' | 'shield' | 'support'; className?: string }) => {
 	switch (name) {
 		case 'phone':

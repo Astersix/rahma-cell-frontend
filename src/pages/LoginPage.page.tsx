@@ -23,7 +23,13 @@ const LoginPage = () => {
 		try {
 			const data = await login({ email, password })
 			const role = (data.user?.role === 'admin') ? 'admin' : 'user'
-			if (role === 'admin') loginAsAdmin(); else loginAsUser()
+			const token = (data as any).token
+				?? (data as any).accessToken
+				?? (data as any).jwt
+				?? (data as any)?.data?.token
+				?? (data as any)?.data?.accessToken
+				?? null
+			if (role === 'admin') loginAsAdmin(token); else loginAsUser(token)
 			navigate(role === 'admin' ? '/admin/dashboard' : '/homepage')
 		} catch (err: any) {
 			const message = err?.message || err?.data?.message || 'Gagal masuk. Coba lagi.'
