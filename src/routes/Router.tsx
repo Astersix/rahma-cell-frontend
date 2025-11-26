@@ -4,6 +4,7 @@ import HomePage from '../pages/customer/HomePage.page'
 import ProductDetailPage from '../pages/customer/ProductDetail.page'
 import ProductCartPage from '../pages/customer/ProductCart.page'
 import ProductCheckoutPage from '../pages/customer/ProductCheckout.page'
+import OrderHistoryPage from '../pages/customer/OrderHistory.page'
 import LoginPage from '../pages/LoginPage.page'
 import AdminDashboard from '../pages/admin/AdminDashboard.page'
 import ProductsPage from '../pages/admin/AdminProducts.page'
@@ -60,6 +61,15 @@ const AppRouter = () => {
 				element={
 					<ProtectedRoute allowedRoles={['customer']}>
 						<ProductCheckoutPage />
+					</ProtectedRoute>
+				}
+			/>
+
+			<Route
+				path="/orders"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<OrderHistoryPage />
 					</ProtectedRoute>
 				}
 			/>

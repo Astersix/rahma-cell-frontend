@@ -3,9 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
-// Revert user + backend cart dependency: static addresses + local cart store
 import { useCartStore } from '../../store/cart.store'
 import { useAuthStore } from '../../store/auth.store'
+import PaymentSuccessPopup from '../../components/ui/PaymentSuccessPopup'
+import { orderService } from '../../services/order.service'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -15,16 +16,17 @@ function formatIDR(n?: number) {
 const ProductCheckoutPage = () => {
 	const navigate = useNavigate()
 	const location = useLocation()
-	useAuthStore(() => null) // token not needed for local checkout
+	const token = useAuthStore(s => s.token || '')
 	const cartItems = useCartStore(s => s.items)
 	const [payment, setPayment] = useState<'qris' | 'cod'>('qris')
 	const [selectedAddress, setSelectedAddress] = useState<string>('addr-1')
+	const [placing, setPlacing] = useState(false)
+	const [showSuccess, setShowSuccess] = useState(false)
 	const addresses = useMemo(() => ([
-		{ id: 'addr-1', recipient_name: 'Budi Santoso', phone: '081234567890', address: 'Jl. Merdeka No. 10, Jakarta' },
-		{ id: 'addr-2', recipient_name: 'Andi Wijaya', phone: '082345678901', address: 'Jl. Sudirman No. 21, Bandung' },
+		{ id: '1', recipient_name: 'Budi Santoso', phone: '081234567890', address: 'Jl. Merdeka No. 10, Jakarta' },
+		{ id: '2', recipient_name: 'Andi Wijaya', phone: '082345678901', address: 'Jl. Sudirman No. 21, Bandung' },
 	]), [])
 
-	// Determine selected items from router state (payload) or query/keys
 	const stateSelected = (location.state as any)?.selectedKeys as string[] | undefined
 	const stateSelectedItems = (location.state as any)?.selectedItems as Array<{
 		key: string
@@ -33,6 +35,7 @@ const ProductCheckoutPage = () => {
 		price?: number
 		quantity: number
 		imageUrl?: string
+    variantId?: string
 	}> | undefined
 	const querySelected = useMemo(() => {
 		const sp = new URLSearchParams(location.search)
@@ -49,11 +52,45 @@ const ProductCheckoutPage = () => {
 		return cartItems
 	}, [cartItems, selectedKeys])
 
-	// Prefer items explicitly passed from cart page
 	const displayItems = stateSelectedItems && stateSelectedItems.length ? stateSelectedItems : selectedItems
 
-	// Compute subtotal from selected items only
 	const subtotal = useMemo(() => displayItems.reduce((s, it) => s + (Number(it.price) || 0) * it.quantity, 0), [displayItems])
+
+	const selectedVariantIds = useMemo(() => {
+		const ids = displayItems.map((it: any) => it.variantId).filter(Boolean) as string[]
+		if (ids.length) return ids
+		const setKeys = new Set(displayItems.map((it: any) => it.key))
+		return cartItems.filter(ci => setKeys.has(ci.key)).map(ci => String(ci.variantId))
+	}, [displayItems, cartItems])
+
+	async function handlePlaceOrder() {
+		if (!token) {
+			alert('Silakan login untuk membuat pesanan.')
+			return
+		}
+		const addr = addresses.find(a => String(a.id) === String(selectedAddress))
+		if (!addr) {
+			alert('Pilih alamat pengiriman.')
+			return
+		}
+		try {
+			setPlacing(true)
+			const payload = {
+				paymentMethod: payment,
+				addressId: String(addr.id),
+				productVariantIds: selectedVariantIds,
+			}
+			if (!payload.productVariantIds.length) {
+				throw new Error('Tidak ada produk yang dipilih untuk dipesan.')
+			}
+			await orderService.placeOrder(payload, token)
+			setShowSuccess(true)
+		} catch (e: any) {
+			alert(e?.message || 'Gagal membuat pesanan')
+		} finally {
+			setPlacing(false)
+		}
+	}
 
 	return (
 		<CustomerLayout>
@@ -72,9 +109,7 @@ const ProductCheckoutPage = () => {
 				</div>
 
 				<div className="grid gap-6 md:grid-cols-[1fr_320px]">
-					{/* Left column */}
 					<div className="space-y-4">
-						{/* Address selection */}
 						<Card className="p-0">
 							<div className="px-4 py-3 text-sm font-semibold text-neutral-900">
 								Pilih Alamat Pengiriman
@@ -106,7 +141,6 @@ const ProductCheckoutPage = () => {
 							</div>
 						</Card>
 
-						{/* Payment methods */}
 						<Card className="p-0">
 							<div className="px-4 py-3 text-sm font-semibold text-neutral-900">Metode Pembayaran</div>
 							<div className="space-y-3 p-3">
@@ -161,7 +195,6 @@ const ProductCheckoutPage = () => {
 						</Card>
 					</div>
 
-					{/* Right column - summary */}
 					<div>
 						<Card className="space-y-4 p-0">
 							<div className="px-4 py-3 text-sm font-semibold text-neutral-900">Ringkasan Pesanan</div>
@@ -192,14 +225,14 @@ const ProductCheckoutPage = () => {
 								</div>
 							</div>
 							<div className="px-4 pb-4">
-								<Button fullWidth className="bg-red-600 hover:bg-red-700 active:bg-red-800 focus-visible:ring-red-500" disabled={displayItems.length === 0}>
+								<Button fullWidth className={`bg-red-600 hover:bg-red-700 active:bg-red-800 focus-visible:ring-red-500 ${placing ? 'opacity-70' : ''}`} disabled={displayItems.length === 0 || placing} onClick={handlePlaceOrder}>
 									Buat Pesanan
 								</Button>
 							</div>
 						</Card>
 					</div>
 				</div>
-					{/* Backend loading/error removed */}
+				<PaymentSuccessPopup open={showSuccess} onClose={() => setShowSuccess(false)} />
 			</div>
 		</CustomerLayout>
 	)
