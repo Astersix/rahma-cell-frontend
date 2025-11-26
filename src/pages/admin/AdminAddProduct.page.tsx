@@ -13,7 +13,6 @@ const AdminAddProductPage = () => {
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [categories, setCategories] = useState<Category[]>([])
-  // Variant image URLs (entered manually per variant)
   type NewImage = { image_url: string; is_thumbnail?: boolean }
   type NewVariant = { variant_name: string; price: number | ''; stock: number | ''; images: NewImage[] }
   const [variants, setVariants] = useState<NewVariant[]>([
@@ -31,7 +30,7 @@ const AdminAddProductPage = () => {
         const res = await getAllCategories(token || undefined)
         setCategories(res.data || [])
       } catch (err: any) {
-        // ignore; show empty list
+        // 
       }
     }
     fetchCategories()

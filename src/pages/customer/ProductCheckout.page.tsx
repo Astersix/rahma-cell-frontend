@@ -95,7 +95,6 @@ const ProductCheckoutPage = () => {
 	return (
 		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
-				{/* Title */}
 				<div className="mb-5 flex items-center gap-2">
 					<button
 						type="button"

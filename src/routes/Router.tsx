@@ -20,10 +20,9 @@ import PublicRoute from './PublicRoute'
 const AppRouter = () => {
 	return (
 		<Routes>
-			{/* Default redirect to /landing */}
 			<Route path="/" element={<Navigate to="/landing" replace />} />
 
-			{/* Public routes (authenticated users are redirected to their home) */}
+			{/* Public routes */}
 			<Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
 			<Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
 			<Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
@@ -37,7 +36,6 @@ const AppRouter = () => {
 					</ProtectedRoute>
 				}
 			/>
-
 			<Route
 				path="/product/:id"
 				element={
@@ -46,7 +44,6 @@ const AppRouter = () => {
 					</ProtectedRoute>
 				}
 			/>
-
 			<Route
 				path="/cart"
 				element={
@@ -55,7 +52,6 @@ const AppRouter = () => {
 					</ProtectedRoute>
 				}
 			/>
-
 			<Route
 				path="/checkout"
 				element={
@@ -64,7 +60,6 @@ const AppRouter = () => {
 					</ProtectedRoute>
 				}
 			/>
-
 			<Route
 				path="/orders"
 				element={

@@ -118,7 +118,6 @@ const LoginPage = () => {
 					</form>
 				</Card>
 
-				{/* Helper texts under card */}
 				<div className="mt-8 space-y-2 text-center text-xs text-neutral-500">
 					<p>
 						Butuh bantuan? <a href="#" className="font-medium hover:underline">Hubungi customer service</a>

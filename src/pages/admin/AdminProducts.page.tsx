@@ -63,7 +63,7 @@ const ProductsPage = () => {
         const results = await Promise.all(
           needVariantFetch.map(async (p) => {
             try {
-              const vres = await getVariantsByProductId(String(p.id))
+              const vres = await getVariantsByProductId(String(p.id), token || undefined)
               const variants = vres.data || []
               let thumb: string | undefined
               for (const v of variants) {

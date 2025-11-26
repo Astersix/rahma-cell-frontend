@@ -34,7 +34,6 @@ const AdminUpdateProductPage = () => {
         setDescription(p.data?.description ?? '')
         setCategoryId(p.data?.category_id ?? '')
         setCategories(cats.data || [])
-        // load variants
         const v = await getVariantsByProductId(id as string, token || undefined)
         setVariants((v.data || []).map((it) => ({
           id: it.id,
@@ -66,7 +65,6 @@ const AdminUpdateProductPage = () => {
       }
       await updateProduct(id, dto, token || undefined)
 
-      // Save all variants (update existing, add new)
       for (const v of variants) {
         const payload = { variant_name: v.variant_name, price: v.price, stock: v.stock, images: v.images }
         if (v.id) {
@@ -96,7 +94,6 @@ const AdminUpdateProductPage = () => {
     setVariants(prev => prev.map((pv, i) => {
       if (i !== idx) return pv
       const filtered = pv.images.filter((_, ii) => ii !== imgIdx)
-      // Ensure at least one thumbnail; if none flagged after removal, set first as thumbnail
       if (filtered.length && !filtered.some(im => im.is_thumbnail)) {
         filtered[0] = { ...filtered[0], is_thumbnail: true }
       }
@@ -163,7 +160,6 @@ const AdminUpdateProductPage = () => {
               </select>
             </div>
 
-            {/* Variasi Produk (merged) */}
             <div className="rounded-lg border border-neutral-200 p-3">
               <div className="mb-2 flex items-center justify-between">
                 <div className="text-sm font-semibold text-black">Variasi Produk</div>
@@ -208,7 +204,6 @@ const AdminUpdateProductPage = () => {
                       />
                       <div className="flex items-center gap-2 md:col-span-2" />
                     </div>
-                    {/* Images */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-medium text-neutral-700">Gambar Varian</div>

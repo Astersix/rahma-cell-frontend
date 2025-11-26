@@ -48,7 +48,6 @@ const ProductCartPage = () => {
 		return () => { cancelled = true }
 	}, [token])
 
-		// Lazy fetch variant images if missing in cart response
 		useEffect(() => {
 			let cancelled = false
 			async function ensureImages() {
@@ -77,7 +76,6 @@ const ProductCartPage = () => {
 							}))
 						}
 					} catch {
-						// keep placeholder
 					} finally {
 						setLoadingImages(prev => ({ ...prev, [item.id]: false }))
 					}
@@ -141,7 +139,6 @@ const ProductCartPage = () => {
 								</thead>
 								<tbody className="divide-y divide-neutral-200">
 									{items.map(item => {
-										// Robust image selection: prioritize thumbnail flag, then first image.
 										const images = item.product_variant?.product_image || []
 										const thumb = images.find(i => i.is_thumbnail) || images[0]
 										const imageUrl = thumb?.image_url

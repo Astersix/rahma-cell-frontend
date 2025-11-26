@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { ProductVariant } from './product.service'
 
-// Base URL normalization (same pattern as other services)
+// Base URL Normalization
 const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
 const API_BASE_URL = RAW_BASE
 	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
