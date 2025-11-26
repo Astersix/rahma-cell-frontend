@@ -59,7 +59,7 @@ const ProductCartPage = () => {
 					if (!productId || loadingImages[item.id]) continue
 					setLoadingImages(prev => ({ ...prev, [item.id]: true }))
 					try {
-						const prod = await getProductById(productId)
+						  const prod = await getProductById(productId, token)
 						if (cancelled) return
 						const found = (prod.data.product_variant || []).find(v => v.id === item.product_variant_id)
 						if (found && found.product_image && found.product_image.length > 0) {

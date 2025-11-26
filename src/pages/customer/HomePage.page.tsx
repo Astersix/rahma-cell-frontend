@@ -22,7 +22,7 @@ const HomePage = () => {
 			setLoadingProducts(true)
 			setErrorProducts(null)
 			try {
-				const res = await getAllProduct()
+				const res = await getAllProduct(undefined, token || undefined)
 				const list = (res.data || []).map((p: any) => ({
 					...p,
 					id: String(p.id ?? p.product_id ?? p.productId ?? p.ulid ?? p.uid ?? ''),
@@ -118,6 +118,7 @@ const HomePage = () => {
 									<div className="space-y-1 p-3">
 										<h3 className="text-xs font-medium text-neutral-700 line-clamp-2 min-h-[2.2rem]">{product.name}</h3>
 										<p className="text-[11px] text-neutral-500 line-clamp-2 min-h-[2.2rem]">{product.description}</p>
+										{/* pricetag removed */}
 									</div>
 								</Card>
 								)

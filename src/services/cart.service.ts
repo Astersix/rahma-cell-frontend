@@ -1,19 +1,22 @@
 import axios from 'axios'
+import { attachAuthInterceptor, API_BASE_URL } from './api.service'
 import type { ProductVariant } from './product.service'
 
 // Base URL Normalization
 const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
-const API_BASE_URL = RAW_BASE
+const BASE = RAW_BASE
 	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
-	: 'http://localhost:5000/api'
+	: API_BASE_URL
 
 const api = axios.create({
-	baseURL: API_BASE_URL,
+	baseURL: BASE,
 	withCredentials: false,
 	headers: {
 		'Content-Type': 'application/json',
 	},
 })
+
+attachAuthInterceptor(api)
 
 export type ISODateString = string
 

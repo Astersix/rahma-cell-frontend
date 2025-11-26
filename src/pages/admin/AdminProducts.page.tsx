@@ -28,7 +28,7 @@ const ProductsPage = () => {
     try {
       const [catRes, prodRes] = await Promise.all([
         getAllCategories(token || undefined).catch(() => ({ data: [] as Category[] } as any)),
-        getAllProduct(),
+        getAllProduct(undefined, token || undefined),
       ])
       const cmap: Record<string, string> = {}
       for (const c of catRes?.data || []) {

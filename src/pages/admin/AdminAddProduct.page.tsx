@@ -39,12 +39,17 @@ const AdminAddProductPage = () => {
   function normalizeVariants() {
     return variants
       .filter(v => v.variant_name.trim() && v.price !== '' && v.stock !== '')
-      .map(v => ({
-        variant_name: v.variant_name.trim(),
-        price: Number(v.price),
-        stock: Number(v.stock),
-        images: v.images.filter(img => img.image_url.trim()),
-      }))
+      .map(v => {
+        const imgs = v.images.filter(img => img.image_url.trim())
+        const primary = imgs.find(i => i.is_thumbnail) || imgs[0]
+        return {
+          variant_name: v.variant_name.trim(),
+          price: Number(v.price),
+          stock: Number(v.stock),
+          // Backend create expects a single `image` object during variant creation
+          image: primary ? { image_url: primary.image_url.trim(), is_thumbnail: !!primary.is_thumbnail } : undefined,
+        }
+      })
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -60,6 +65,7 @@ const AdminAddProductPage = () => {
       setLoading(true)
       const dto: CreateProductDTO = { name, description, category_id: categoryId } as any
       if (preparedVariants.length > 0) {
+        // Backend expects `variants` array with optional single `image` per variant
         ;(dto as any).variants = preparedVariants
       }
       await createProduct(dto, token || undefined)

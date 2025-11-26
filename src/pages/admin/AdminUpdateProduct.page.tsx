@@ -66,11 +66,25 @@ const AdminUpdateProductPage = () => {
       await updateProduct(id, dto, token || undefined)
 
       for (const v of variants) {
-        const payload = { variant_name: v.variant_name, price: v.price, stock: v.stock, images: v.images }
+        // First update core fields
+        const base = { variant_name: v.variant_name, price: v.price, stock: v.stock }
         if (v.id) {
-          await updateProductVariant(v.id, payload as any, token || undefined)
+          await updateProductVariant(v.id, base as any, token || undefined)
+          // Then upsert each image individually using updateVariant API
+          for (const img of v.images || []) {
+            await updateProductVariant(v.id, { image: { id: img.id, image_url: img.image_url, is_thumbnail: !!img.is_thumbnail } } as any, token || undefined)
+          }
         } else {
-          await addProductVariant(id, (payload as any), token || undefined)
+          // Create new variant with a primary image (thumbnail or first)
+          const primary = (v.images || []).find(i => i.is_thumbnail) || (v.images || [])[0]
+          const created = await addProductVariant(id, { ...base, image: primary ? { image_url: primary.image_url, is_thumbnail: !!primary.is_thumbnail } : undefined } as any, token || undefined)
+          const newId = (created?.data as any)?.id
+          if (newId) {
+            // Add remaining images (excluding the primary already created)
+            for (const img of (v.images || []).filter(i => i !== primary)) {
+              await updateProductVariant(String(newId), { image: { image_url: img.image_url, is_thumbnail: !!img.is_thumbnail } } as any, token || undefined)
+            }
+          }
         }
       }
       setSuccess('Perubahan disimpan')

@@ -28,7 +28,7 @@ const AdminProductDetailPage = () => {
       setLoading(true)
       setError(null)
       try {
-        const res = await getProductById(id as string)
+        const res = await getProductById(id as string, token || undefined)
         const p = res.data
         setName(p?.name ?? '')
         setDescription(p?.description ?? '')
