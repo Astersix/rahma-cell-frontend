@@ -1,24 +1,73 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 
-import HomePage from '../pages/HomePage.page'
+import HomePage from '../pages/customer/HomePage.page'
+import ProductDetailPage from '../pages/customer/ProductDetail.page'
+import ProductCartPage from '../pages/customer/ProductCart.page'
+import ProductCheckoutPage from '../pages/customer/ProductCheckout.page'
+import OrderHistoryPage from '../pages/customer/OrderHistory.page'
 import LoginPage from '../pages/LoginPage.page'
 import AdminDashboard from '../pages/admin/AdminDashboard.page'
 import ProductsPage from '../pages/admin/AdminProducts.page'
+import AdminAddProductPage from '../pages/admin/AdminAddProduct.page'
+import AdminUpdateProductPage from '../pages/admin/AdminUpdateProduct.page'
+import AdminProductDetailPage from '../pages/admin/AdminProductDetail.page'
 import OrdersPage from '../pages/admin/AdminOrders.page'
 import RegisterPage from '../pages/RegisterPage.page'
 import ProtectedRoute from './ProtectedRoute'
-import DevAdminLogin from '../pages/DevAdminLogin.page'
+import LandingPage from '../pages/LandingPage.page'
+import PublicRoute from './PublicRoute'
 
 const AppRouter = () => {
 	return (
 		<Routes>
-			{/* Default redirect to /Homepage */}
-			<Route path="/" element={<Navigate to="/Homepage" replace />} />
+			<Route path="/" element={<Navigate to="/landing" replace />} />
 
 			{/* Public routes */}
-			<Route path="/Homepage" element={<HomePage />} />
-			<Route path="/login" element={<LoginPage />} />
-			<Route path="/register" element={<RegisterPage />} />
+			<Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
+			<Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+			<Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+
+			{/* Customer routes */}
+			<Route
+				path="/homepage"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<HomePage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/product/:id"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<ProductDetailPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/cart"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<ProductCartPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/checkout"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<ProductCheckoutPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/orders"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<OrderHistoryPage />
+					</ProtectedRoute>
+				}
+			/>
 
 			{/* Admin routes */}
 			<Route
@@ -38,6 +87,30 @@ const AppRouter = () => {
 				}
 			/>
 			<Route
+				path="/admin/products/new"
+				element={
+					<ProtectedRoute allowedRoles={['admin']}>
+						<AdminAddProductPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/admin/products/:id"
+				element={
+					<ProtectedRoute allowedRoles={['admin']}>
+						<AdminProductDetailPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/admin/products/:id/edit"
+				element={
+					<ProtectedRoute allowedRoles={['admin']}>
+						<AdminUpdateProductPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
 				path="/admin/orders"
 				element={
 					<ProtectedRoute allowedRoles={['admin']}>
@@ -46,11 +119,8 @@ const AppRouter = () => {
 				}
 			/>
 
-			{/* Dev-only routes - remove before production */}
-			<Route path="/dev/login-admin" element={<DevAdminLogin />} />
-
 			{/* Fallback */}
-			<Route path="*" element={<Navigate to="/Homepage" replace />} />
+			<Route path="*" element={<Navigate to="/landing" replace />} />
 		</Routes>
 	)
 }

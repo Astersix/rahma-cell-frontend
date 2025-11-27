@@ -1,15 +1,17 @@
 import ButtonIcon from './ButtonIcon'
+import type { ReactNode } from 'react'
 type NavbarVariant = 'dark' | 'light'
 
 interface NavbarProps {
 	variant?: NavbarVariant
+	rightSlot?: ReactNode
 }
 
 function cn(...parts: Array<string | false | null | undefined>) {
 	return parts.filter(Boolean).join(' ')
 }
 
-const Navbar = ({ variant = 'dark' }: NavbarProps) => {
+const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
 	const isLight = variant === 'light'
 
 	return (
@@ -24,13 +26,16 @@ const Navbar = ({ variant = 'dark' }: NavbarProps) => {
 					</div>
 					<span className={cn('text-lg font-semibold', isLight ? 'text-black' : 'text-white')}>CV Rahma Cell</span>
 				</div>
-				<nav className="hidden items-center gap-6 text-sm md:flex">
+				<nav className={cn('hidden items-center gap-6 text-sm md:flex md:ml-auto', isLight ? 'text-black' : 'text-white')}>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Beranda</a>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Produk</a>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Kategori</a>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Tentang Kami</a>
 					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Kontak</a>
 				</nav>
+				<div className="hidden items-center gap-3 md:flex">
+					{rightSlot}
+				</div>
 				<div className="md:hidden">
 					<ButtonIcon
 						aria-label="Open Menu"

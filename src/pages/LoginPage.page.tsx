@@ -22,13 +22,18 @@ const LoginPage = () => {
 		setLoading(true)
 		try {
 			const data = await login({ email, password })
-			// Decide role based on response; fallback to 'user'
 			const role = (data.user?.role === 'admin') ? 'admin' : 'user'
-			if (role === 'admin') loginAsAdmin(); else loginAsUser()
-			// Navigate after successful login
-			navigate(role === 'admin' ? '/admin/dashboard' : '/HomePage')
+			const token = (data as any).token
+				?? (data as any).accessToken
+				?? (data as any).jwt
+				?? (data as any)?.data?.token
+				?? (data as any)?.data?.accessToken
+				?? null
+			if (role === 'admin') loginAsAdmin(token); else loginAsUser(token)
+			navigate(role === 'admin' ? '/admin/dashboard' : '/homepage')
 		} catch (err: any) {
-			setError(err?.response?.data?.message || 'Gagal masuk. Coba lagi.')
+			const message = err?.message || err?.data?.message || 'Gagal masuk. Coba lagi.'
+			setError(message)
 		} finally {
 			setLoading(false)
 		}
@@ -113,7 +118,6 @@ const LoginPage = () => {
 					</form>
 				</Card>
 
-				{/* Helper texts under card */}
 				<div className="mt-8 space-y-2 text-center text-xs text-neutral-500">
 					<p>
 						Butuh bantuan? <a href="#" className="font-medium hover:underline">Hubungi customer service</a>

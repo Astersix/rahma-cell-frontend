@@ -1,0 +1,9 @@
+category_id,name,description,variant_name,price,stock,image_url
+CAT001,Donat Empuk,Donat empuk lembut,Original,1800,12,https://example.com/donat-original-1.jpg|https://example.com/donat-original-2.jpg
+CAT001,Donat Empuk,Donat empuk lembut,Cokelat,2000,8,https://example.com/donat-choco-1.jpg
+CAT001,Donat Empuk,Donat empuk lembut,Strawberry,2100,6,https://example.com/donat-strawberry-1.jpg
+CAT002,Martabak Mini,Martabak mini manis lezat,Original,2500,5,https://example.com/martabak-mini-1.jpg|https://example.com/martabak-mini-2.jpg|https://example.com/martabak-mini-3.jpg
+CAT002,Martabak Mini,Martabak mini manis lezat,Cokelat Keju,3000,3,https://example.com/martabak-choco-keju-1.jpg
+CAT003,Pancake Lembut,Pancake lembut rasa buah,Blueberry,2400,10,https://example.com/pancake-blueberry-1.jpg
+CAT003,Pancake Lembut,Pancake lembut rasa buah,Strawberry,2500,9,https://example.com/pancake-strawberry-1.jpg|https://example.com/pancake-strawberry-2.jpg
+CAT003,Pancake Lembut,Pancake lembut rasa buah,Caramel,2600,7,https://example.com/pancake-caramel-1.jpg
