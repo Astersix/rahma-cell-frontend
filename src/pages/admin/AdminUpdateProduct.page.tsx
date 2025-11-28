@@ -4,6 +4,7 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { getProductById, getVariantsByProductId, updateProduct, updateProductVariant, addProductVariant, deleteProductVariant, type UpdateProductDTO, type ProductImage } from '../../services/product.service'
+import { uploadImages } from '../../services/image.service'
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth.store'
@@ -21,6 +22,16 @@ const AdminUpdateProductPage = () => {
   const [success, setSuccess] = useState<string | null>(null)
   const [variants, setVariants] = useState<Array<{ id?: string; variant_name?: string; price?: number; stock?: number; images: Array<{ id?: string; image_url: string; is_thumbnail?: boolean }> }>>([])
   const [removingId, setRemovingId] = useState<string | null>(null)
+
+  function fileNameFromUrl(url: string) {
+    try {
+      const u = new URL(url, 'http://local')
+      return u.pathname.split('/').pop() || url
+    } catch {
+      const parts = url.split('?')[0].split('#')[0].split('/')
+      return parts[parts.length - 1] || url
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -117,6 +128,24 @@ const AdminUpdateProductPage = () => {
 
   function setThumbnail(idx: number, imgIdx: number) {
     setVariants(prev => prev.map((pv, i) => i === idx ? { ...pv, images: pv.images.map((im, ii) => ({ ...im, is_thumbnail: ii === imgIdx })) } : pv))
+  }
+
+  async function handleFilesSelect(idx: number, files: FileList | null) {
+    if (!files || files.length === 0) return
+    const first = files[0]
+    try {
+      setLoading(true)
+      const [url] = await uploadImages([first])
+      setVariants(prev => {
+        const nv = [...prev]
+        nv[idx] = { ...nv[idx], images: [{ image_url: url, is_thumbnail: true }] }
+        return nv
+      })
+    } catch (e: any) {
+      setError(e?.message || 'Gagal mengunggah gambar')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function removeVariant(idx: number) {
@@ -221,33 +250,41 @@ const AdminUpdateProductPage = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-medium text-neutral-700">Gambar Varian</div>
-                        <button type="button" onClick={() => addImage(i)} className="rounded border border-neutral-300 px-2 py-0.5 text-xs hover:bg-neutral-50">+ Tambah Gambar</button>
                       </div>
+                      <div
+                        className="mb-2 flex h-36 w-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-neutral-300 text-neutral-500 hover:bg-neutral-50"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          handleFilesSelect(i, e.dataTransfer.files)
+                        }}
+                        onClick={() => document.getElementById(`upd-file-${i}`)?.click()}
+                      >
+                        <div className="mb-1 rounded bg-neutral-200 p-2 text-neutral-600">🖼️</div>
+                        <div className="text-xs">Drag & drop gambar di sini</div>
+                        <div className="text-[11px]">atau</div>
+                        <div className="mt-1 rounded-md bg-red-600 px-3 py-1 text-[11px] font-medium text-white">Pilih file</div>
+                        <input id={`upd-file-${i}`} type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFilesSelect(i, e.target.files)} />
+                      </div>
+
                       {v.images.length === 0 && <p className="text-xs text-neutral-400">Belum ada gambar.</p>}
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                        {v.images.map((img, ii) => (
-                          <div key={ii} className="rounded-md border border-neutral-200 p-2 space-y-2">
-                            <input
-                              className="w-full rounded-md border border-neutral-200 px-2 py-1 text-xs"
-                              placeholder="URL gambar"
-                              value={img.image_url}
-                              onChange={(e) => updateImage(i, ii, e.target.value)}
-                            />
-                            <div className="flex items-center justify-between">
-                              <label className="flex items-center gap-1 text-[11px] text-neutral-600">
-                                <input
-                                  type="radio"
-                                  name={`thumb-${i}`}
-                                  checked={!!img.is_thumbnail}
-                                  onChange={() => setThumbnail(i, ii)}
-                                />
-                                Thumbnail
+                      {v.images.length > 0 && (
+                        <div className="space-y-2 rounded-md border border-neutral-200 p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-neutral-100 text-[10px] text-neutral-500">IMG</div>
+                              <div className="max-w-[320px] truncate text-sm text-neutral-800">{fileNameFromUrl(v.images[0].image_url)}</div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <label className="flex items-center gap-1 text-xs text-neutral-700">
+                                <input type="radio" name={`thumb-${i}`} checked readOnly />
+                                Thumbnail Utama
                               </label>
-                              <button type="button" onClick={() => removeImage(i, ii)} className="text-[11px] text-red-600 hover:underline">Hapus</button>
+                              <button type="button" onClick={() => removeImage(i, 0)} className="text-neutral-500 hover:text-red-600" aria-label="Hapus">🗑️</button>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

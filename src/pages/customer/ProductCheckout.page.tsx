@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button'
 import { useCartStore } from '../../store/cart.store'
 import { useAuthStore } from '../../store/auth.store'
 import PaymentSuccessPopup from '../../components/ui/PaymentSuccessPopup'
-import { orderService } from '../../services/order.service'
+import { orderService, type PlaceOrderRequest } from '../../services/order.service'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -56,6 +56,7 @@ const ProductCheckoutPage = () => {
 
 	const subtotal = useMemo(() => displayItems.reduce((s, it) => s + (Number(it.price) || 0) * it.quantity, 0), [displayItems])
 
+  // Resolve variant IDs for display items, fallback to cart by key
 	const selectedVariantIds = useMemo(() => {
 		const ids = displayItems.map((it: any) => it.variantId).filter(Boolean) as string[]
 		if (ids.length) return ids
@@ -75,15 +76,35 @@ const ProductCheckoutPage = () => {
 		}
 		try {
 			setPlacing(true)
-			const payload = {
-				paymentMethod: payment,
-				addressId: String(addr.id),
-				productVariantIds: selectedVariantIds,
-			}
-			if (!payload.productVariantIds.length) {
+			// Build backend-compatible payload (snake_case)
+			const checkout_method: PlaceOrderRequest['checkout_method'] = stateSelectedItems && stateSelectedItems.length ? 'direct' : 'cart'
+			const items = displayItems.map((it: any) => {
+				const pvId = it.variantId || cartItems.find(ci => ci.key === it.key)?.variantId
+				return { product_variant_id: String(pvId || ''), quantity: Number(it.quantity) || 0 }
+			}).filter((i: any) => i.product_variant_id && i.quantity > 0)
+
+			if (!items.length) {
 				throw new Error('Tidak ada produk yang dipilih untuk dipesan.')
 			}
-			await orderService.placeOrder(payload, token)
+
+			const payload: PlaceOrderRequest = {
+				payment_method: payment,
+				address_id: String(addr.id),
+				checkout_method,
+				items,
+			}
+
+			const res = await orderService.placeOrder(payload)
+			const orderId = res?.data?.order_id
+
+			// If QRIS, initiate QR generation so backend creates payment + QR
+			if (payment === 'qris' && orderId) {
+				try {
+					await orderService.initiateQris(orderId)
+				} catch (e) {
+					// ignore QR init error here; user can retry from orders page
+				}
+			}
 			setShowSuccess(true)
 		} catch (e: any) {
 			alert(e?.message || 'Gagal membuat pesanan')
