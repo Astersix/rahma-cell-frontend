@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
@@ -7,6 +7,7 @@ import { useCartStore } from '../../store/cart.store'
 import { useAuthStore } from '../../store/auth.store'
 import PaymentSuccessPopup from '../../components/ui/PaymentSuccessPopup'
 import { orderService, type PlaceOrderRequest } from '../../services/order.service'
+import { getMyProfile, type Address } from '../../services/user.service'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -19,13 +20,31 @@ const ProductCheckoutPage = () => {
 	const token = useAuthStore(s => s.token || '')
 	const cartItems = useCartStore(s => s.items)
 	const [payment, setPayment] = useState<'qris' | 'cod'>('qris')
-	const [selectedAddress, setSelectedAddress] = useState<string>('addr-1')
+	const [selectedAddress, setSelectedAddress] = useState<string>('')
 	const [placing, setPlacing] = useState(false)
 	const [showSuccess, setShowSuccess] = useState(false)
-	const addresses = useMemo(() => ([
-		{ id: '1', recipient_name: 'Budi Santoso', phone: '081234567890', address: 'Jl. Merdeka No. 10, Jakarta' },
-		{ id: '2', recipient_name: 'Andi Wijaya', phone: '082345678901', address: 'Jl. Sudirman No. 21, Bandung' },
-	]), [])
+	const [addresses, setAddresses] = useState<Address[]>([])
+	const [addrLoading, setAddrLoading] = useState(false)
+
+	async function reloadAddresses() {
+		try {
+			if (!token) return
+			setAddrLoading(true)
+			const profile = await getMyProfile(token)
+			const list = Array.isArray(profile.address) ? profile.address : []
+			setAddresses(list)
+			const def = list.find(a => a.is_default) || list[0]
+			if (def) setSelectedAddress(String(def.id))
+		} catch {
+			// ignore display-only errors
+		} finally {
+			setAddrLoading(false)
+		}
+	}
+
+	useEffect(() => {
+		reloadAddresses()
+	}, [token])
 
 	const stateSelected = (location.state as any)?.selectedKeys as string[] | undefined
 	const stateSelectedItems = (location.state as any)?.selectedItems as Array<{
@@ -97,15 +116,17 @@ const ProductCheckoutPage = () => {
 			const res = await orderService.placeOrder(payload)
 			const orderId = res?.data?.order_id
 
-			// If QRIS, initiate QR generation so backend creates payment + QR
+			// If QRIS: navigate to payment page (QRIS flow)
 			if (payment === 'qris' && orderId) {
 				try {
+					// optional: initiate QR to ensure payment is prepared
 					await orderService.initiateQris(orderId)
-				} catch (e) {
-					// ignore QR init error here; user can retry from orders page
-				}
+				} catch {}
+				navigate(`/payment/${orderId}`)
+			} else {
+				// Otherwise: show success popup for non-QRIS (e.g., COD)
+				setShowSuccess(true)
 			}
-			setShowSuccess(true)
 		} catch (e: any) {
 			alert(e?.message || 'Gagal membuat pesanan')
 		} finally {
@@ -135,29 +156,44 @@ const ProductCheckoutPage = () => {
 								Pilih Alamat Pengiriman
 							</div>
 							<div className="space-y-3 p-3">
-								{addresses.map((a) => (
-									<label
-										key={a.id}
-										className="flex cursor-pointer items-start gap-3 rounded-md border border-neutral-200 px-3 py-3 hover:bg-neutral-50"
-									>
-										<input
-											type="radio"
-											name="address"
-											className="mt-1 h-4 w-4 rounded border-neutral-300 text-red-600 focus:ring-red-500"
-											checked={selectedAddress === a.id}
-											onChange={() => setSelectedAddress(a.id)}
-										/>
-										<div className="text-xs leading-relaxed">
-											<div className="font-semibold text-neutral-800">{a.recipient_name}</div>
-											<div className="text-neutral-700">
-												<span className="font-medium">Alamat:</span> {a.address}
+								{addresses.length === 0 ? (
+									<div className="rounded-md border border-dashed border-neutral-300 p-4 text-xs text-neutral-600">
+										<div className="mb-2 font-medium text-neutral-800">Belum ada alamat tersimpan</div>
+										<div className="mb-3">Tambahkan alamat utama di profil Anda lalu muat ulang.</div>
+										<button
+											type="button"
+											onClick={reloadAddresses}
+											className={`rounded-md px-3 py-2 text-xs font-medium ${addrLoading ? 'bg-neutral-200 text-neutral-500' : 'bg-red-600 text-white hover:bg-red-700'}`}
+											disabled={addrLoading}
+										>
+											{addrLoading ? 'Memuat…' : 'Muat Ulang Alamat'}
+										</button>
+									</div>
+								) : (
+									addresses.map((a) => (
+										<label
+											key={a.id}
+											className="flex cursor-pointer items-start gap-3 rounded-md border border-neutral-200 px-3 py-3 hover:bg-neutral-50"
+										>
+											<input
+												type="radio"
+												name="address"
+												className="mt-1 h-4 w-4 rounded border-neutral-300 text-red-600 focus:ring-red-500"
+												checked={selectedAddress === a.id}
+												onChange={() => setSelectedAddress(a.id)}
+											/>
+											<div className="text-xs leading-relaxed">
+												<div className="font-semibold text-neutral-800">{a.recipient_name}</div>
+												<div className="text-neutral-700">
+													<span className="font-medium">Alamat:</span> {a.address}
+												</div>
+												<div className="text-neutral-700">
+													<span className="font-medium">Telepon:</span> {a.phone}
+												</div>
 											</div>
-											<div className="text-neutral-700">
-												<span className="font-medium">Telepon:</span> {a.phone}
-											</div>
-										</div>
-									</label>
-								))}
+										</label>
+									))
+								)}
 							</div>
 						</Card>
 
@@ -245,7 +281,7 @@ const ProductCheckoutPage = () => {
 								</div>
 							</div>
 							<div className="px-4 pb-4">
-								<Button fullWidth className={`bg-red-600 hover:bg-red-700 active:bg-red-800 focus-visible:ring-red-500 ${placing ? 'opacity-70' : ''}`} disabled={displayItems.length === 0 || placing} onClick={handlePlaceOrder}>
+								<Button fullWidth className={`bg-red-600 hover:bg-red-700 active:bg-red-800 focus-visible:ring-red-500 ${placing ? 'opacity-70' : ''}`} disabled={displayItems.length === 0 || placing || !selectedAddress} onClick={handlePlaceOrder}>
 									Buat Pesanan
 								</Button>
 							</div>

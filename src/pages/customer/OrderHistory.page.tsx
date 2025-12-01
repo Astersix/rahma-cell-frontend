@@ -1,4 +1,7 @@
+import { useEffect, useMemo, useState } from 'react'
 import CustomerLayout from '../../layouts/CustomerLayout'
+import { orderService } from '../../services/order.service'
+import { useAuthStore } from '../../store/auth.store'
 
 const IconUser = () => (
 	<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -52,30 +55,35 @@ const Sidebar = () => (
 	</aside>
 )
 
-const Tabs = () => (
-	<div className="mb-4 flex flex-wrap gap-2 text-sm">
-		{[
-			{ key: 'semua', label: 'Semua', active: true },
-			{ key: 'belum-bayar', label: 'Belum Bayar' },
-			{ key: 'sedang-dikemas', label: 'Sedang Dikemas' },
-			{ key: 'dikirim', label: 'Dikirim' },
-			{ key: 'selesai', label: 'Selesai' },
-			{ key: 'dibatalkan', label: 'Dibatalkan' },
-			{ key: 'pengembalian', label: 'Pengembalian Barang' },
-		].map((t) => (
-			<button
-				key={t.key}
-				className={
-					t.active
-						? 'rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-neutral-900 shadow-sm'
-						: 'rounded-full border border-neutral-200 px-4 py-1.5 text-neutral-600 hover:bg-neutral-50'
-				}
-			>
-				{t.label}
-			</button>
-		))}
-	</div>
-)
+type TabKey = 'semua' | 'belum-bayar' | 'diproses' | 'dikirim' | 'selesai' | 'dibatalkan'
+
+const Tabs = ({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => void }) => {
+	const tabs: { key: TabKey; label: string }[] = [
+		{ key: 'semua', label: 'Semua' },
+		{ key: 'belum-bayar', label: 'Belum Bayar' },
+		{ key: 'diproses', label: 'Sedang Diproses' },
+		{ key: 'dikirim', label: 'Dikirim' },
+		{ key: 'selesai', label: 'Selesai' },
+		{ key: 'dibatalkan', label: 'Dibatalkan' },
+	]
+	return (
+		<div className="mb-4 flex flex-wrap gap-2 text-sm">
+			{tabs.map((t) => (
+				<button
+					key={t.key}
+					onClick={() => onChange(t.key)}
+					className={
+						active === t.key
+							? 'rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-neutral-900 shadow-sm'
+							: 'rounded-full border border-neutral-200 px-4 py-1.5 text-neutral-600 hover:bg-neutral-50'
+					}
+				>
+					{t.label}
+				</button>
+			))}
+		</div>
+	)
+}
 
 const OrderCard = ({
 	statusTitle,
@@ -133,7 +141,53 @@ const OrderCard = ({
 	)
 }
 
+const normalizeStatus = (s?: string) => {
+	const v = (s || '').toLowerCase()
+	if (v.includes('menunggu') && v.includes('bayar')) return 'belum-bayar'
+	if (v.includes('menunggu_pembayaran')) return 'belum-bayar'
+	if (v.includes('diproses') || v.includes('kemas')) return 'diproses'
+	if (v.includes('dikirim')) return 'dikirim'
+	if (v.includes('selesai')) return 'selesai'
+	if (v.includes('batal')) return 'dibatalkan'
+	return 'diproses'
+}
+
+const statusTone = (k: TabKey): 'red' | 'amber' | 'green' => {
+	if (k === 'belum-bayar') return 'red'
+	if (k === 'selesai') return 'green'
+	if (k === 'dikirim' || k === 'diproses') return 'amber'
+	return 'amber'
+}
+
 const OrderHistoryPage = () => {
+	const token = useAuthStore(s => s.token)
+	const [orders, setOrders] = useState<any[]>([])
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
+	const [tab, setTab] = useState<TabKey>('semua')
+
+	useEffect(() => {
+		async function load() {
+			try {
+				setLoading(true)
+				setError(null)
+				const res = await orderService.getMyOrders()
+				const list = (res?.data ?? res) as any[]
+				setOrders(Array.isArray(list) ? list : [])
+			} catch (e: any) {
+				setError(e?.message || 'Gagal memuat pesanan')
+			} finally {
+				setLoading(false)
+			}
+		}
+		load()
+	}, [token])
+
+	const filtered = useMemo(() => {
+		if (tab === 'semua') return orders
+		return orders.filter((o) => normalizeStatus(o?.status) === tab)
+	}, [orders, tab])
+
 	return (
 		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
@@ -143,42 +197,50 @@ const OrderHistoryPage = () => {
 
 					{/* Main content */}
 					<div>
-						<Tabs />
+						<Tabs active={tab} onChange={setTab} />
 
-						{/* Belum Bayar */}
-						<div className="space-y-4">
-							<OrderCard
-								statusTitle="Belum Bayar"
-								statusNote="Menunggu pembayaran"
-								statusTone="red"
-								name="iPhone 15 Pro Max 256GB Natural Titanium"
-								variant="Natural Titanium 256GB"
-								qty={1}
-								total={18999000}
-							/>
-
-							{/* Dikirim */}
-							<OrderCard
-								statusTitle="Dikirim"
-								statusNote="Pesanan dalam perjalanan"
-								statusTone="amber"
-								name="iPhone 15 Pro Max 256GB Natural Titanium"
-								variant="Natural Titanium 256GB"
-								qty={1}
-								total={18999000}
-							/>
-
-							{/* Selesai */}
-							<OrderCard
-								statusTitle="Selesai"
-								statusTone="green"
-								name="iPhone 15 Pro Max 256GB Natural Titanium"
-								variant="Natural Titanium 256GB"
-								qty={1}
-								total={18999000}
-								ctaLabel="Beli lagi"
-							/>
-						</div>
+						{loading && <div className="text-sm text-neutral-600">Memuat pesanan…</div>}
+						{error && <div className="text-sm text-red-600">{error}</div>}
+						{!loading && !error && (
+							<div className="space-y-4">
+								{filtered.length === 0 ? (
+									<div className="rounded-md border border-neutral-200 bg-white p-4 text-sm text-neutral-600">Tidak ada pesanan untuk filter ini.</div>
+								) : (
+									filtered.map((o) => {
+										const items = Array.isArray(o?.order_product) ? o.order_product : []
+										const first = items[0]
+										const name: string = first?.name || 'Produk'
+										const variant = first?.name?.split(' - ')[1] || '-'
+										const qty = items.reduce((s: number, it: any) => s + (Number(it?.quantity) || 0), 0) || 1
+										const k = normalizeStatus(o?.status) as TabKey
+										const tone = statusTone(k)
+										const titleMap: Record<TabKey, string> = {
+											'semua': 'Pesanan',
+											'belum-bayar': 'Belum Bayar',
+											'diproses': 'Diproses',
+											'dikirim': 'Dikirim',
+											'selesai': 'Selesai',
+											'dibatalkan': 'Dibatalkan',
+										}
+										const note = k === 'belum-bayar' ? 'Menunggu pembayaran' : (k === 'dikirim' ? 'Pesanan dalam perjalanan' : undefined)
+										const cta = k === 'selesai' ? 'Beli lagi' : undefined
+										return (
+											<OrderCard
+												key={o.id}
+												statusTitle={titleMap[k]}
+												statusNote={note}
+												statusTone={tone}
+												name={name}
+												variant={variant}
+												qty={qty}
+												total={Number(o?.total) || 0}
+												ctaLabel={cta}
+											/>
+										)
+									})
+								)}
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
