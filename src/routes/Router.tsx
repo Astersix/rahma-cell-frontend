@@ -3,6 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from '../pages/customer/HomePage.page'
 import ProductDetailPage from '../pages/customer/ProductDetail.page'
 import ProductCartPage from '../pages/customer/ProductCart.page'
+import ProductCheckoutPage from '../pages/customer/ProductCheckout.page'
+import OrderHistoryPage from '../pages/customer/OrderHistory.page'
+import QrisPaymentPage from '../pages/customer/QrisPayment.page'
 import LoginPage from '../pages/LoginPage.page'
 import AdminDashboard from '../pages/admin/AdminDashboard.page'
 import ProductsPage from '../pages/admin/AdminProducts.page'
@@ -18,10 +21,9 @@ import PublicRoute from './PublicRoute'
 const AppRouter = () => {
 	return (
 		<Routes>
-			{/* Default redirect to /landing */}
 			<Route path="/" element={<Navigate to="/landing" replace />} />
 
-			{/* Public routes (authenticated users are redirected to their home) */}
+			{/* Public routes */}
 			<Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
 			<Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
 			<Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
@@ -35,7 +37,6 @@ const AppRouter = () => {
 					</ProtectedRoute>
 				}
 			/>
-
 			<Route
 				path="/product/:id"
 				element={
@@ -44,12 +45,35 @@ const AppRouter = () => {
 					</ProtectedRoute>
 				}
 			/>
-
 			<Route
 				path="/cart"
 				element={
 					<ProtectedRoute allowedRoles={['customer']}>
 						<ProductCartPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/checkout"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<ProductCheckoutPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/orders"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<OrderHistoryPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/payment/:orderId"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<QrisPaymentPage />
 					</ProtectedRoute>
 				}
 			/>

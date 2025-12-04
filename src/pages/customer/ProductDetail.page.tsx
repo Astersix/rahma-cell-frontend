@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import { getProductById, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
-import { useCartStore } from '../../store/cart.store'
+import { addItemToCart, getCartByUserId } from '../../services/cart.service'
+import { getMyProfile } from '../../services/user.service'
+import { useAuthStore } from '../../store/auth.store'
 
 const PlaceholderImage = () => (
 	<div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-100 text-neutral-400">
@@ -20,7 +22,7 @@ const ProductDetailPage = () => {
 	const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null)
 	const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
 	const [qty, setQty] = useState<number>(1)
-	const addToCart = useCartStore((s) => s.addItem)
+	const token = useAuthStore(s => s.token || undefined)
 	const [actionMsg, setActionMsg] = useState<string | null>(null)
 
 	useEffect(() => {
@@ -83,26 +85,28 @@ const ProductDetailPage = () => {
 		setQty((q) => Math.max(1, q - 1))
 	}
 
-	function doAddToCart() {
+	async function doAddToCart() {
 		if (!product || !selectedVariant) return
-		addToCart(
-			{
-				productId: String(product.id),
-				productName: product.name,
-				variantId: String(selectedVariant.id),
-				variantName: selectedVariant.variant_name,
-				price: selectedVariant.price,
-				imageUrl: selectedImageUrl || undefined,
-				quantity: qty,
-			},
-			qty,
-		)
-		setActionMsg('Ditambahkan ke keranjang')
-		setTimeout(() => setActionMsg(null), 1500)
+		if (!token) {
+			setActionMsg('Silakan login untuk menambahkan ke keranjang')
+			setTimeout(() => setActionMsg(null), 1500)
+			return
+		}
+		try {
+			const me = await getMyProfile(token)
+			const userId = me.id
+			await getCartByUserId(userId, token)
+			await addItemToCart(userId, { product_variant_id: String(selectedVariant.id), quantity: qty }, token)
+			await getCartByUserId(userId, token)
+			setActionMsg('Ditambahkan ke keranjang')
+		} catch (err: any) {
+			setActionMsg(err?.message || 'Gagal menambahkan ke keranjang')
+		} finally {
+			setTimeout(() => setActionMsg(null), 1500)
+		}
 	}
 
 	function doBuyNow() {
-		// For now, add to cart then notify; checkout flow not implemented
 		doAddToCart()
 		setActionMsg('Produk ditambahkan. Lanjutkan ke keranjang untuk checkout.')
 		setTimeout(() => setActionMsg(null), 2000)
@@ -111,7 +115,6 @@ const ProductDetailPage = () => {
 	return (
 		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
-				{/* Breadcrumb */}
 				<nav className="mb-4 text-xs text-neutral-500">
 					<button
 						type="button"
@@ -129,7 +132,6 @@ const ProductDetailPage = () => {
 
 				{product && (
 					<div className="grid gap-6 md:grid-cols-[1fr_1.1fr]">
-						{/* Left: gallery */}
 						<div>
 							<Card className="h-[360px]">
 								{selectedImageUrl ? (
@@ -146,7 +148,6 @@ const ProductDetailPage = () => {
 										onClick={() => setSelectedImageUrl(img.image_url)}
 									>
 										<div className="h-16 w-full overflow-hidden rounded-md bg-neutral-100">
-											{/* eslint-disable-next-line @next/next/no-img-element */}
 											<img src={img.image_url} alt={`img-${idx}`} className="h-full w-full object-cover" />
 										</div>
 									</button>
@@ -161,20 +162,16 @@ const ProductDetailPage = () => {
 							</div>
 						</div>
 
-						{/* Right: info */}
 						<div>
 							<h1 className="text-2xl font-semibold text-neutral-900">{product.name}</h1>
 							<p className="mt-2 max-w-xl text-sm text-neutral-600">{product.description || 'Tidak ada deskripsi.'}</p>
 
 							<div className="my-4 h-px bg-neutral-200" />
 
-							{/* Price block */}
 							<div className="mb-4 flex items-end gap-3">
 								<div className="text-2xl font-semibold text-neutral-900">{priceText}</div>
-								{/* Optional crossed-out price/discount not available */}
 							</div>
 
-							{/* Variant options */}
 							<div className="space-y-3">
 								<div>
 									<div className="mb-2 text-sm font-medium text-neutral-800">Pilih Varian</div>
@@ -195,7 +192,6 @@ const ProductDetailPage = () => {
 
 							<div className="my-4 h-px bg-neutral-200" />
 
-							{/* Availability / actions */}
 							<div className="mb-4 flex items-center gap-3 text-sm text-neutral-700">
 								<span className={`inline-flex h-2 w-2 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-500'}`} />
 								<span>{inStock ? `Stok tersedia (${stock}) - Siap untuk dikirim` : 'Stok habis'}</span>

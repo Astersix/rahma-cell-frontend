@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import AdminLayout from '../../layouts/AdminLayout'
 import ButtonIcon from '../../components/ui/ButtonIcon'
 import { getAllProduct, getVariantsByProductId, type Product } from '../../services/product.service'
-import { importProductsFromFile, type ImportResult } from '../../utils/productImporter'
+import { importService, type ImportProductsSummary } from '../../services/import.service'
 import ImportFilePopup from '../../components/ui/ImportFile'
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
@@ -20,7 +20,7 @@ const ProductsPage = () => {
   const [showImport, setShowImport] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [categoriesMap, setCategoriesMap] = useState<Record<string, string>>({})
-  const [importResult, setImportResult] = useState<ImportResult | null>(null)
+  const [importSummary, setImportSummary] = useState<ImportProductsSummary | null>(null)
 
   async function loadProducts(initial = false) {
     setLoading(true)
@@ -28,7 +28,7 @@ const ProductsPage = () => {
     try {
       const [catRes, prodRes] = await Promise.all([
         getAllCategories(token || undefined).catch(() => ({ data: [] as Category[] } as any)),
-        getAllProduct(),
+        getAllProduct(undefined, token || undefined),
       ])
       const cmap: Record<string, string> = {}
       for (const c of catRes?.data || []) {
@@ -63,7 +63,7 @@ const ProductsPage = () => {
         const results = await Promise.all(
           needVariantFetch.map(async (p) => {
             try {
-              const vres = await getVariantsByProductId(String(p.id))
+              const vres = await getVariantsByProductId(String(p.id), token || undefined)
               const variants = vres.data || []
               let thumb: string | undefined
               for (const v of variants) {
@@ -111,10 +111,10 @@ const ProductsPage = () => {
           <h1 className="text-2xl font-semibold text-black">Produk</h1>
           <p className="mt-2 text-sm text-neutral-600">Kelola katalog produk, variasi, dan stok.</p>
         </div>
-        {importResult && (
+        {importSummary && (
           <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-            Berhasil impor {importResult.productsCreated} produk, {importResult.variantsCreated} varian.
-            {importResult.errors.length ? ` ${importResult.errors.length} baris gagal.` : ''}
+            Berhasil impor {importSummary.created_products} produk, {importSummary.created_variants} varian{typeof importSummary.updated_variants === 'number' ? `, ${importSummary.updated_variants} varian diperbarui` : ''}.
+            {importSummary.message ? ` ${importSummary.message}` : ''}
           </div>
         )}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -248,8 +248,8 @@ const ProductsPage = () => {
         onImport={async (file) => {
           try {
             setUploading(true)
-            const result = await importProductsFromFile(file, token || undefined)
-            setImportResult(result)
+            const summary = await importService.importProductsCsv(file)
+            setImportSummary(summary)
             await loadProducts(false)
             setShowImport(false)
           } catch (e: any) {

@@ -1,18 +1,7 @@
 import axios from 'axios'
+import { api, attachAuthInterceptor } from './api.service'
 
-// Base URL normalization similar to category.service
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
-const API_BASE_URL = RAW_BASE
-	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
-	: 'http://localhost:5000/api'
-
-const api = axios.create({
-	baseURL: API_BASE_URL,
-	withCredentials: false,
-	headers: {
-		'Content-Type': 'application/json',
-	},
-})
+attachAuthInterceptor(api)
 
 export type ApiResponse<T> = {
 	data: T
@@ -84,11 +73,10 @@ function normalizeAxiosError(err: unknown) {
 }
 
 function authHeaders(token?: string) {
-	return token
-		? {
-			  Authorization: `Bearer ${token}`,
-		  }
-		: undefined
+	if (!token) return undefined
+	const raw = String(token)
+	const t = raw.replace(/^Bearer\s+/i, '')
+	return { Authorization: `Bearer ${t}` }
 }
 
 // Utility to extract an array of objects from various response shapes
@@ -113,9 +101,9 @@ function extractArray<T = unknown>(raw: any): T[] {
 }
 
 // READ: Get all products
-export async function getAllProduct(params?: Record<string, unknown>): Promise<ApiResponse<Product[]>> {
+export async function getAllProduct(params?: Record<string, unknown>, token?: string): Promise<ApiResponse<Product[]>> {
 	try {
-		const res = await api.get<any>('/product', { params })
+		const res = await api.get<any>('/product', { params, headers: authHeaders(token) })
 		const raw = res.data
 		const list: Product[] = extractArray<Product>(raw)
 		return { data: list, message: raw?.message }
@@ -125,9 +113,9 @@ export async function getAllProduct(params?: Record<string, unknown>): Promise<A
 }
 
 // READ: Get product by id
-export async function getProductById(id: string): Promise<ApiResponse<Product>> {
+export async function getProductById(id: string, token?: string): Promise<ApiResponse<Product>> {
 	try {
-		const res = await api.get<any>(`/product/${encodeURIComponent(id)}`)
+		const res = await api.get<any>(`/product/${encodeURIComponent(id)}` , { headers: authHeaders(token) })
 		const raw = res.data
 		const candidate = raw?.data ?? raw?.product ?? raw
 		return { data: candidate as Product, message: raw?.message }
