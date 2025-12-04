@@ -13,20 +13,16 @@ function formatIDR(n?: number) {
 const AdminOrderDetailPage = () => {
 	const navigate = useNavigate()
 	const { orderId } = useParams<{ orderId: string }>()
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
 	const [order, setOrder] = useState<any | null>(null)
 	const [selectedStatus, setSelectedStatus] = useState<string>('')
 	const [updating, setUpdating] = useState(false)
 
 	const items = useMemo(() => Array.isArray(order?.order_product) ? order.order_product : [], [order])
-	const subtotal = useMemo(() => items.reduce((s: number, it: any) => s + (Number(it?.price) || 0) * (Number(it?.quantity) || 0), 0), [items])
 
 	useEffect(() => {
 		let mounted = true
 		async function load() {
 			try {
-				setLoading(true)
 				if (!orderId) {
 					setOrder(null)
 					return
@@ -38,9 +34,7 @@ const AdminOrderDetailPage = () => {
 					setSelectedStatus(data?.status || '')
 				}
 			} catch (e: any) {
-				setError(e?.message || 'Gagal memuat detail pesanan')
-			} finally {
-				setLoading(false)
+				console.error('Failed to load order:', e?.message || 'Gagal memuat detail pesanan')
 			}
 		}
 		load()
@@ -59,7 +53,7 @@ const AdminOrderDetailPage = () => {
 			setSelectedStatus(data?.status || '')
 			navigate('/admin/orders', { state: { refreshAfter: 'status-update' } })
 		} catch (e: any) {
-			setError(e?.message || 'Gagal mengubah status pesanan')
+			console.error('Failed to update status:', e?.message || 'Gagal mengubah status pesanan')
 		} finally {
 			setUpdating(false)
 		}
