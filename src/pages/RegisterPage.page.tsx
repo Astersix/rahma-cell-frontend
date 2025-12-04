@@ -30,7 +30,6 @@ const RegisterPage = () => {
             loginAsUser()
             navigate('/homepage')
         } catch (err: any) {
-            // err may be the normalized object thrown from the service
             const message = err?.message || err?.data?.message || 'Registrasi gagal. Coba lagi.'
             setError(message)
         } finally {

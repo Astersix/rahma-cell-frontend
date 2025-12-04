@@ -1,11 +1,14 @@
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
+import ButtonIcon from '../../components/ui/ButtonIcon'
 import ProductCategory, { type CategoryItem } from '../../components/ui/ProductCategory'
 import { useState, useMemo, useEffect } from 'react'
 import { getAllProduct, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
 import { getAllCategories } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
 import { Link } from 'react-router-dom'
+
+const PAGE_SIZE = 20
 
 const HomePage = () => {
 	const [category, setCategory] = useState<string>('all')
@@ -15,6 +18,10 @@ const HomePage = () => {
 	const [loadingCategories, setLoadingCategories] = useState(false)
 	const [errorProducts, setErrorProducts] = useState<string | null>(null)
 	const [errorCategories, setErrorCategories] = useState<string | null>(null)
+	const [page, setPage] = useState<number>(1)
+	const [hasNext, setHasNext] = useState<boolean>(false)
+	const [totalPages, setTotalPages] = useState<number>(1)
+	const [totalCount, setTotalCount] = useState<number | null>(null)
 	const { isAuthenticated, token } = useAuthStore()
 
 	useEffect(() => {
@@ -22,16 +29,31 @@ const HomePage = () => {
 			setLoadingProducts(true)
 			setErrorProducts(null)
 			try {
-				const res = await getAllProduct()
+				const res: any = await getAllProduct({ page, limit: PAGE_SIZE }, token || undefined)
 				const list = (res.data || []).map((p: any) => ({
 					...p,
 					id: String(p.id ?? p.product_id ?? p.productId ?? p.ulid ?? p.uid ?? ''),
 					category_id: String(p.category_id ?? p.categoryId ?? ''),
 				}))
-				// Fetch variant thumbnails (first thumbnail or first image) per product
-				const withThumb = await Promise.all(list.map(async (p) => {
+
+				// Determine if there is next page using meta if available
+				const meta = res?.meta
+				if (meta) {
+					const current = Number(meta.page || meta.currentPage || page)
+					const last = Number(meta.lastPage || meta.last || current)
+					setHasNext(current < last)
+					setTotalPages(Math.max(1, last))
+					if (typeof meta.total !== 'undefined') setTotalCount(Number(meta.total))
+				} else {
+					// Fallback when meta is not provided
+					setHasNext((list?.length ?? 0) === PAGE_SIZE)
+					setTotalPages(page + ((list?.length ?? 0) === PAGE_SIZE ? 1 : 0))
+					setTotalCount(null)
+				}
+
+				const withThumb = await Promise.all(list.map(async (p: any) => {
 					try {
-						const vres = await getVariantsByProductId(String(p.id))
+						const vres = await getVariantsByProductId(String(p.id), token || undefined)
 						const variants: ProductVariant[] = vres.data || []
 						let thumb: string | undefined
 						for (const v of variants) {
@@ -45,7 +67,8 @@ const HomePage = () => {
 						return { ...p }
 					}
 				}))
-				setProducts(withThumb as any)
+				// Cap to maximum PAGE_SIZE items displayed per page
+				setProducts((withThumb as any).slice(0, PAGE_SIZE))
 			} catch (err: any) {
 				setErrorProducts(err.message || 'Gagal memuat produk')
 			} finally {
@@ -53,10 +76,9 @@ const HomePage = () => {
 			}
 		}
 		fetchProducts()
-	}, [])
+	}, [page, token])
 
 	useEffect(() => {
-		// categories require auth; only attempt when authenticated
 		async function fetchCategories() {
 			if (!isAuthenticated) return
 			setLoadingCategories(true)
@@ -86,7 +108,6 @@ const HomePage = () => {
 		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
 				<div className="grid gap-8 md:grid-cols-[250px_1fr]">
-					{/* Category Sidebar */}
 					<div>
 						<ProductCategory
 							categories={categories}
@@ -96,7 +117,6 @@ const HomePage = () => {
 						{loadingCategories && <p className="mt-2 text-xs text-neutral-500">Memuat kategori...</p>}
 						{errorCategories && <p className="mt-2 text-xs text-red-600">{errorCategories}</p>}
 					</div>
-					{/* Products Section */}
 					<div className="space-y-6">
 						<div>
 							<h2 className="text-xl font-semibold">Produk Terbaru</h2>
@@ -105,22 +125,23 @@ const HomePage = () => {
 						{loadingProducts && <p className="text-sm text-neutral-500">Memuat produk...</p>}
 						{errorProducts && <p className="text-sm text-red-600">{errorProducts}</p>}
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-														{filtered.map((product: any) => {
+							{filtered.map((product: any) => {
 								const pid = (product as any)?.id ?? (product as any)?._id ?? (product as any)?.product_id
 								const card = (
 								<Card className="p-0 overflow-hidden">
-																		{product.thumbnail_url ? (
-																			<div className="h-32 w-full overflow-hidden bg-neutral-100">
-																				<img src={product.thumbnail_url} alt={product.name} className="h-full w-full object-cover" />
-																			</div>
-																		) : (
-																			<div className="h-32 w-full bg-neutral-100 flex items-center justify-center text-neutral-400 text-xs">
-																				<span>{product.name.slice(0, 16)}</span>
-																			</div>
-																		)}
+									{product.thumbnail_url ? (
+										<div className="h-32 w-full overflow-hidden bg-neutral-100">
+											<img src={product.thumbnail_url} alt={product.name} className="h-full w-full object-cover" />
+										</div>
+									) : (
+										<div className="h-32 w-full bg-neutral-100 flex items-center justify-center text-neutral-400 text-xs">
+											<span>{product.name.slice(0, 16)}</span>
+										</div>
+									)}
 									<div className="space-y-1 p-3">
 										<h3 className="text-xs font-medium text-neutral-700 line-clamp-2 min-h-[2.2rem]">{product.name}</h3>
 										<p className="text-[11px] text-neutral-500 line-clamp-2 min-h-[2.2rem]">{product.description}</p>
+										{/* pricetag removed */}
 									</div>
 								</Card>
 								)
@@ -134,6 +155,44 @@ const HomePage = () => {
 									</div>
 								)
 							})}
+						</div>
+						<div className="flex items-center justify-end px-1 sm:px-0 py-3 text-xs text-neutral-600">
+							<div className="flex items-center gap-1">
+							<ButtonIcon
+								aria-label="Prev"
+								icon="arrow-left"
+								size="sm"
+								variant="light"
+								className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
+								onClick={() => setPage(p => Math.max(1, p - 1))}
+								disabled={page === 1 || loadingProducts}
+							/>
+							{Array.from({ length: Math.max(1, totalPages) }).map((_, idx) => {
+								const pnum = idx + 1
+								const active = pnum === page
+								return (
+									<button
+										key={pnum}
+										onClick={() => setPage(pnum)}
+										className={active
+											? 'h-8 w-8 rounded-md bg-black text-white'
+											: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
+										disabled={loadingProducts}
+									>
+										{pnum}
+									</button>
+								)
+							})}
+							<ButtonIcon
+								aria-label="Next"
+								icon="arrow-right"
+								size="sm"
+								variant="light"
+								className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
+								onClick={() => setPage(p => p + 1)}
+								disabled={!hasNext || loadingProducts}
+							/>
+							</div>
 						</div>
 					</div>
 				</div>

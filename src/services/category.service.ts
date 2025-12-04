@@ -1,18 +1,5 @@
 import axios from 'axios'
-
-// API base (reuse env or fallback) with normalization
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
-const API_BASE_URL = RAW_BASE
-	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
-	: 'http://localhost:5000/api'
-
-const api = axios.create({
-	baseURL: API_BASE_URL,
-	withCredentials: false,
-	headers: {
-		'Content-Type': 'application/json',
-	},
-})
+import { api } from './api.service'
 
 export type ApiResponse<T> = {
 	data: T
@@ -40,14 +27,12 @@ function normalizeAxiosError(err: unknown) {
 	return { message: String(err) }
 }
 
-function authHeaders(token?: string) {
-	return token ? { Authorization: `Bearer ${token}` } : undefined
-}
+// Auth handled by interceptor
 
 // GET ALL (requires auth per backend routes)
-export async function getAllCategories(token?: string): Promise<ApiResponse<Category[]>> {
+export async function getAllCategories(_token?: string): Promise<ApiResponse<Category[]>> {
 	try {
-		const res = await api.get<any>('/category', { headers: authHeaders(token) })
+		const res = await api.get<any>('/category')
 		const raw = res.data
 		const list: Category[] = Array.isArray(raw)
 			? raw
@@ -65,9 +50,9 @@ export async function getAllCategories(token?: string): Promise<ApiResponse<Cate
 }
 
 // GET BY ID (requires auth)
-export async function getCategoryById(id: string, token?: string): Promise<ApiResponse<Category>> {
+export async function getCategoryById(id: string, _token?: string): Promise<ApiResponse<Category>> {
 	try {
-		const res = await api.get<ApiResponse<Category>>(`/category/${id}`, { headers: authHeaders(token) })
+		const res = await api.get<ApiResponse<Category>>(`/category/${id}`)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)

@@ -4,6 +4,7 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
 import { createProduct, type CreateProductDTO } from '../../services/product.service'
+import { uploadImages } from '../../services/image.service'
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
 import { useNavigate } from 'react-router-dom'
@@ -13,7 +14,6 @@ const AdminAddProductPage = () => {
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [categories, setCategories] = useState<Category[]>([])
-  // Variant image URLs (entered manually per variant)
   type NewImage = { image_url: string; is_thumbnail?: boolean }
   type NewVariant = { variant_name: string; price: number | ''; stock: number | ''; images: NewImage[] }
   const [variants, setVariants] = useState<NewVariant[]>([
@@ -31,7 +31,7 @@ const AdminAddProductPage = () => {
         const res = await getAllCategories(token || undefined)
         setCategories(res.data || [])
       } catch (err: any) {
-        // ignore; show empty list
+        // 
       }
     }
     fetchCategories()
@@ -40,12 +40,17 @@ const AdminAddProductPage = () => {
   function normalizeVariants() {
     return variants
       .filter(v => v.variant_name.trim() && v.price !== '' && v.stock !== '')
-      .map(v => ({
-        variant_name: v.variant_name.trim(),
-        price: Number(v.price),
-        stock: Number(v.stock),
-        images: v.images.filter(img => img.image_url.trim()),
-      }))
+      .map(v => {
+        const imgs = v.images.filter(img => img.image_url.trim())
+        const primary = imgs.find(i => i.is_thumbnail) || imgs[0]
+        return {
+          variant_name: v.variant_name.trim(),
+          price: Number(v.price),
+          stock: Number(v.stock),
+          // Backend create expects a single `image` object during variant creation
+          image: primary ? { image_url: primary.image_url.trim(), is_thumbnail: !!primary.is_thumbnail } : undefined,
+        }
+      })
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -61,6 +66,7 @@ const AdminAddProductPage = () => {
       setLoading(true)
       const dto: CreateProductDTO = { name, description, category_id: categoryId } as any
       if (preparedVariants.length > 0) {
+        // Backend expects `variants` array with optional single `image` per variant
         ;(dto as any).variants = preparedVariants
       }
       await createProduct(dto, token || undefined)
@@ -71,6 +77,50 @@ const AdminAddProductPage = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  function fileNameFromUrl(url: string) {
+    try {
+      const u = new URL(url, 'http://local')
+      return u.pathname.split('/').pop() || url
+    } catch {
+      const parts = url.split('?')[0].split('#')[0].split('/')
+      return parts[parts.length - 1] || url
+    }
+  }
+
+  async function handleFilesSelect(vi: number, files: FileList | null) {
+    if (!files || files.length === 0) return
+    const first = files[0]
+    try {
+      setLoading(true)
+      const [url] = await uploadImages([first])
+      setVariants(prev => {
+        const nv = [...prev]
+        nv[vi] = { ...nv[vi], images: [{ image_url: url, is_thumbnail: true }] }
+        return nv
+      })
+    } catch (e: any) {
+      setError(e?.message || 'Gagal mengunggah gambar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function setThumbnail(vi: number) {
+    setVariants(prev => {
+      const nv = [...prev]
+      if (nv[vi].images[0]) nv[vi].images[0].is_thumbnail = true
+      return nv
+    })
+  }
+
+  function removeImage(vi: number) {
+    setVariants(prev => {
+      const nv = [...prev]
+      nv[vi].images = []
+      return nv
+    })
   }
 
   return (
@@ -112,52 +162,46 @@ const AdminAddProductPage = () => {
               </select>
             </div>
 
-            {/* Gambar Produk per varian (URL) */}
+            {/* Gambar Produk per Varian (Upload/local) */}
             <div>
-              <div className="mb-2 text-sm font-semibold text-black">Gambar Produk per Varian</div>
-              <p className="mb-3 text-xs text-neutral-600">Masukkan URL gambar untuk setiap varian (1–6), tandai satu sebagai thumbnail.</p>
+              <div className="mb-2 text-sm font-semibold text-black">Gambar Produk</div>
+              <p className="mb-3 text-xs text-neutral-600">Unggah 1–6 gambar produk. Tandai salah satu sebagai thumbnail utama.</p>
               {variants.map((v, vi) => (
                 <div key={vi} className="mb-4 rounded-md border border-neutral-200 p-3">
                   <div className="mb-2 text-xs font-medium text-neutral-700">Varian #{vi + 1} - Gambar</div>
-                  <div className="space-y-2">
-                    {v.images.map((img, ii) => (
-                      <div key={ii} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="https://..."
-                          value={img.image_url}
-                          onChange={(e) => {
-                            const nv = [...variants]
-                            nv[vi].images[ii].image_url = e.target.value
-                            setVariants(nv)
-                          }}
-                          className="flex-1 rounded-md border border-neutral-200 px-3 py-2 text-sm"
-                        />
-                        <label className="flex items-center gap-1 text-xs text-neutral-700">
-                          <input
-                            type="radio"
-                            name={`thumb-${vi}`}
-                            checked={!!img.is_thumbnail}
-                            onChange={() => {
-                              const nv = [...variants]
-                              nv[vi].images = nv[vi].images.map((g, gi) => ({ ...g, is_thumbnail: gi === ii }))
-                              setVariants(nv)
-                            }}
-                          /> Thumbnail
-                        </label>
-                        <button type="button" className="rounded border px-2 py-1 text-xs" onClick={() => {
-                          const nv = [...variants]
-                          nv[vi].images.splice(ii, 1)
-                          setVariants(nv)
-                        }}>Hapus</button>
-                      </div>
-                    ))}
-                    <button type="button" className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs hover:bg-neutral-50" onClick={() => {
-                      const nv = [...variants]
-                      nv[vi].images.push({ image_url: '', is_thumbnail: nv[vi].images.length === 0 })
-                      setVariants(nv)
-                    }}>+ Tambah Gambar</button>
+                  <div
+                    className="mb-3 flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-neutral-300 text-neutral-500 hover:bg-neutral-50"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      handleFilesSelect(vi, e.dataTransfer.files)
+                    }}
+                    onClick={() => document.getElementById(`file-${vi}`)?.click()}
+                  >
+                    <div className="mb-2 rounded bg-neutral-200 p-3 text-neutral-600">🖼️</div>
+                    <div className="text-sm">Drag & drop gambar di sini</div>
+                    <div className="text-xs">atau</div>
+                    <div className="mt-2 rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white">Pilih file</div>
+                    <input id={`file-${vi}`} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleFilesSelect(vi, e.target.files)} />
                   </div>
+
+                  {v.images.length > 0 && (
+                    <div className="space-y-2 rounded-md border border-neutral-200 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-neutral-100 text-[10px] text-neutral-500">IMG</div>
+                          <div className="text-sm text-neutral-800 truncate max-w-[320px]">{fileNameFromUrl(v.images[0].image_url)}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1 text-xs text-neutral-700">
+                            <input type="radio" name={`thumb-${vi}`} checked readOnly />
+                            Thumbnail Utama
+                          </label>
+                          <button type="button" onClick={() => removeImage(vi)} aria-label="Hapus" className="text-neutral-500 hover:text-red-600">🗑️</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

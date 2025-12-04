@@ -63,10 +63,8 @@ const LandingPage = () => {
 	return (
 		<MainLayout>
 			<div className="space-y-12">
-				{/* Hero */}
 				<section className="relative overflow-hidden rounded-2xl border border-neutral-200">
 					<div className="absolute inset-0">
-						{/* Background image with gradient overlay */}
 						<img
 							src={heroImg}
 							alt="Banner"
@@ -106,7 +104,6 @@ const LandingPage = () => {
 					</div>
 				</section>
 
-				{/* Categories */}
 				<section className="space-y-2">
 					<h2 className="text-center text-2xl font-bold">Kategori Produk Pilihan</h2>
 					<p className="text-center text-sm text-neutral-600">Temukan berbagai kategori produk sesuai kebutuhan Anda</p>
@@ -123,7 +120,6 @@ const LandingPage = () => {
 					</div>
 				</section>
 
-				{/* Featured Products */}
 				<section className="space-y-2">
 					<h2 className="text-center text-2xl font-bold">Produk Unggulan</h2>
 					<p className="text-center text-sm text-neutral-600">Produk terlaris dan terpopuler bulan ini</p>
@@ -150,8 +146,7 @@ const LandingPage = () => {
 						))}
 					</div>
 				</section>
-
-				{/* CTA */}
+				
 				<section>
 					<Card variant="dark" className="flex flex-col items-center gap-4 rounded-2xl p-10 text-center text-white md:flex-row md:justify-between md:text-left">
 						<div>

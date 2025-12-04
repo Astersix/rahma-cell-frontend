@@ -6,7 +6,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { deleteProductWithVariants, getProductById, getVariantsByProductId, type ProductVariant } from '../../services/product.service'
 import { useAuthStore } from '../../store/auth.store'
-import { getCategoryById } from '../../services/category.service'
+import { getCategoryById, getAllCategories } from '../../services/category.service'
 
 const AdminProductDetailPage = () => {
   const { id } = useParams<{ id: string }>()
@@ -18,7 +18,7 @@ const AdminProductDetailPage = () => {
   const [description, setDescription] = useState('')
   const [categoryName, setCategoryName] = useState('')
   const [showDelete, setShowDelete] = useState(false)
-  const [deleting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [variants, setVariants] = useState<ProductVariant[]>([])
   const [mainImageUrl, setMainImageUrl] = useState<string | null>(null)
 
@@ -33,7 +33,7 @@ const AdminProductDetailPage = () => {
         setName(p?.name ?? '')
         setDescription(p?.description ?? '')
         const catId = p?.category_id ?? ''
-        const vres = await getVariantsByProductId(id as string, token || undefined)
+        const vres = await getVariantsByProductId(id as string)
         const vs = vres.data || []
         setVariants(vs)
         // derive main image: first thumbnail among variants; fallback first image of first variant
@@ -45,12 +45,19 @@ const AdminProductDetailPage = () => {
           }
         }
         setMainImageUrl(main)
-        if (catId) {
+        // Ensure token is available before hitting protected category endpoint
+        if (catId && token) {
           try {
-            const cres = await getCategoryById(String(catId), token || undefined)
+            const cres = await getCategoryById(String(catId))
             setCategoryName(cres?.data?.name || '')
-          } catch {
-            setCategoryName('')
+          } catch (e) {
+            try {
+              const all = await getAllCategories()
+              const found = (all?.data || []).find((c: any) => String(c?.id) === String(catId))
+              setCategoryName(found?.name || '')
+            } catch {
+              setCategoryName('')
+            }
           }
         } else {
           setCategoryName('')
@@ -64,12 +71,21 @@ const AdminProductDetailPage = () => {
     run()
   }, [id, token])
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!id) return
-    setShowDelete(false)
-    navigate('/admin/products', { state: { refreshAfter: 'delete', deletedId: id } })
-    deleteProductWithVariants(id, token || undefined).catch(() => {
-    })
+    setDeleting(true)
+    try {
+      // Attempt to delete variants then product on backend
+      await deleteProductWithVariants(id)
+      setShowDelete(false)
+      // Navigate back to products list and hint refresh
+      navigate('/admin/products', { state: { refreshAfter: 'delete', deletedId: id } })
+    } catch (err) {
+      // Surface a simple error state
+      setError((err as any)?.message || 'Gagal menghapus produk')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
