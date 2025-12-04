@@ -1,21 +1,5 @@
 import axios from 'axios'
-import { attachAuthInterceptor, API_BASE_URL } from './api.service'
-
-// Base URL Normalization
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
-const BASE = RAW_BASE
-	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
-	: API_BASE_URL
-
-const api = axios.create({
-	baseURL: BASE,
-	withCredentials: false,
-	headers: {
-		'Content-Type': 'application/json',
-	},
-})
-
-attachAuthInterceptor(api)
+import { api } from './api.service'
 
 export type ApiResponse<T> = {
 	data: T
@@ -43,17 +27,12 @@ function normalizeAxiosError(err: unknown) {
 	return { message: String(err) }
 }
 
-function authHeaders(token?: string) {
-	if (!token) return undefined
-	const raw = String(token)
-	const t = raw.replace(/^Bearer\s+/i, '')
-	return { Authorization: `Bearer ${t}` }
-}
+// Auth handled by interceptor
 
 // GET ALL (requires auth per backend routes)
-export async function getAllCategories(token?: string): Promise<ApiResponse<Category[]>> {
+export async function getAllCategories(_token?: string): Promise<ApiResponse<Category[]>> {
 	try {
-		const res = await api.get<any>('/category', { headers: authHeaders(token) })
+		const res = await api.get<any>('/category')
 		const raw = res.data
 		const list: Category[] = Array.isArray(raw)
 			? raw
@@ -71,9 +50,9 @@ export async function getAllCategories(token?: string): Promise<ApiResponse<Cate
 }
 
 // GET BY ID (requires auth)
-export async function getCategoryById(id: string, token?: string): Promise<ApiResponse<Category>> {
+export async function getCategoryById(id: string, _token?: string): Promise<ApiResponse<Category>> {
 	try {
-		const res = await api.get<ApiResponse<Category>>(`/category/${id}`, { headers: authHeaders(token) })
+		const res = await api.get<ApiResponse<Category>>(`/category/${id}`)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)

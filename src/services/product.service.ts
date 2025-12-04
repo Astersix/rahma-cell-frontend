@@ -1,7 +1,5 @@
 import axios from 'axios'
-import { api, attachAuthInterceptor } from './api.service'
-
-attachAuthInterceptor(api)
+import { api } from './api.service'
 
 export type ApiResponse<T> = {
 	data: T
@@ -72,12 +70,7 @@ function normalizeAxiosError(err: unknown) {
 	return { message: String(err) }
 }
 
-function authHeaders(token?: string) {
-	if (!token) return undefined
-	const raw = String(token)
-	const t = raw.replace(/^Bearer\s+/i, '')
-	return { Authorization: `Bearer ${t}` }
-}
+// Auth handled by interceptor
 
 // Utility to extract an array of objects from various response shapes
 function extractArray<T = unknown>(raw: any): T[] {
@@ -101,21 +94,22 @@ function extractArray<T = unknown>(raw: any): T[] {
 }
 
 // READ: Get all products
-export async function getAllProduct(params?: Record<string, unknown>, token?: string): Promise<ApiResponse<Product[]>> {
+export async function getAllProduct(params?: Record<string, unknown>, _token?: string): Promise<ApiResponse<Product[]>> {
 	try {
-		const res = await api.get<any>('/product', { params, headers: authHeaders(token) })
+		const res = await api.get<any>('/product', { params })
 		const raw = res.data
 		const list: Product[] = extractArray<Product>(raw)
-		return { data: list, message: raw?.message }
+		const meta = (raw && (raw.meta || raw.pagination || raw?.data?.meta)) || undefined
+		return { data: list, message: raw?.message, meta }
 	} catch (err) {
 		throw normalizeAxiosError(err)
 	}
 }
 
 // READ: Get product by id
-export async function getProductById(id: string, token?: string): Promise<ApiResponse<Product>> {
+export async function getProductById(id: string, _token?: string): Promise<ApiResponse<Product>> {
 	try {
-		const res = await api.get<any>(`/product/${encodeURIComponent(id)}` , { headers: authHeaders(token) })
+		const res = await api.get<any>(`/product/${encodeURIComponent(id)}` )
 		const raw = res.data
 		const candidate = raw?.data ?? raw?.product ?? raw
 		return { data: candidate as Product, message: raw?.message }
@@ -125,9 +119,9 @@ export async function getProductById(id: string, token?: string): Promise<ApiRes
 }
 
 // CREATE: Admin only
-export async function createProduct(dto: CreateProductDTO, token?: string): Promise<ApiResponse<Product>> {
+export async function createProduct(dto: CreateProductDTO, _token?: string): Promise<ApiResponse<Product>> {
 	try {
-		const res = await api.post<ApiResponse<Product>>('/product', dto, { headers: authHeaders(token) })
+		const res = await api.post<ApiResponse<Product>>('/product', dto)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -135,9 +129,9 @@ export async function createProduct(dto: CreateProductDTO, token?: string): Prom
 }
 
 // UPDATE: Admin only
-export async function updateProduct(id: string, dto: UpdateProductDTO, token?: string): Promise<ApiResponse<Product>> {
+export async function updateProduct(id: string, dto: UpdateProductDTO, _token?: string): Promise<ApiResponse<Product>> {
 	try {
-		const res = await api.put<ApiResponse<Product>>(`/product/${encodeURIComponent(id)}`, dto, { headers: authHeaders(token) })
+		const res = await api.put<ApiResponse<Product>>(`/product/${encodeURIComponent(id)}`, dto)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -145,9 +139,9 @@ export async function updateProduct(id: string, dto: UpdateProductDTO, token?: s
 }
 
 // DELETE: Admin only
-export async function deleteProduct(id: string, token?: string): Promise<ApiResponse<{ deleted: boolean } | null>> {
+export async function deleteProduct(id: string, _token?: string): Promise<ApiResponse<{ deleted: boolean } | null>> {
 	try {
-		const res = await api.delete<ApiResponse<{ deleted: boolean } | null>>(`/product/${encodeURIComponent(id)}`, { headers: authHeaders(token) })
+		const res = await api.delete<ApiResponse<{ deleted: boolean } | null>>(`/product/${encodeURIComponent(id)}`)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -155,9 +149,9 @@ export async function deleteProduct(id: string, token?: string): Promise<ApiResp
 }
 
 // VARIANT: update
-export async function updateProductVariant(variantId: string, dto: UpdateVariantDTO, token?: string): Promise<ApiResponse<unknown>> {
+export async function updateProductVariant(variantId: string, dto: UpdateVariantDTO, _token?: string): Promise<ApiResponse<unknown>> {
 	try {
-		const res = await api.put<ApiResponse<unknown>>(`/product/variant/${encodeURIComponent(variantId)}`, dto, { headers: authHeaders(token) })
+		const res = await api.put<ApiResponse<unknown>>(`/product/variant/${encodeURIComponent(variantId)}`, dto)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -165,9 +159,9 @@ export async function updateProductVariant(variantId: string, dto: UpdateVariant
 }
 
 // VARIANT: delete
-export async function deleteProductVariant(variantId: string, token?: string): Promise<ApiResponse<{ deleted: boolean } | null>> {
+export async function deleteProductVariant(variantId: string, _token?: string): Promise<ApiResponse<{ deleted: boolean } | null>> {
 	try {
-		const res = await api.delete<ApiResponse<{ deleted: boolean } | null>>(`/product/variant/${encodeURIComponent(variantId)}`, { headers: authHeaders(token) })
+		const res = await api.delete<ApiResponse<{ deleted: boolean } | null>>(`/product/variant/${encodeURIComponent(variantId)}`)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -175,7 +169,7 @@ export async function deleteProductVariant(variantId: string, token?: string): P
 }
 
 // CASCADE DELETE: attempt to delete all variants before deleting the product to satisfy FK constraints
-export async function deleteProductWithVariants(productId: string, token?: string): Promise<ApiResponse<{ deleted: boolean } | null>> {
+export async function deleteProductWithVariants(productId: string, _token?: string): Promise<ApiResponse<{ deleted: boolean } | null>> {
 	// Collect variant IDs from several possible response shapes
 	function collectVariantIds(raw: any): string[] {
 		const variantContainers = [
@@ -200,12 +194,12 @@ export async function deleteProductWithVariants(productId: string, token?: strin
 
 	try {
 		// Fetch raw product to inspect variants
-		const res = await api.get<any>(`/product/${encodeURIComponent(productId)}`, { headers: authHeaders(token) })
+		const res = await api.get<any>(`/product/${encodeURIComponent(productId)}`)
 		const raw = res.data
 		const variantIds = collectVariantIds(raw)
 		for (const vid of variantIds) {
 			try {
-				await deleteProductVariant(vid, token)
+				await deleteProductVariant(vid)
 			} catch (err) {
 				// Ignore individual variant deletion errors; continue attempting others
 			}
@@ -215,13 +209,13 @@ export async function deleteProductWithVariants(productId: string, token?: strin
 	}
 
 	// Finally delete product
-	return await deleteProduct(productId, token)
+	return await deleteProduct(productId)
 }
 
 // VARIANT: list by product
-export async function getVariantsByProductId(productId: string, token?: string): Promise<ApiResponse<ProductVariant[]>> {
+export async function getVariantsByProductId(productId: string, _token?: string): Promise<ApiResponse<ProductVariant[]>> {
 	try {
-		const res = await api.get<any>(`/product/${encodeURIComponent(productId)}/variant`, { headers: authHeaders(token) })
+		const res = await api.get<any>(`/product/${encodeURIComponent(productId)}/variant`)
 		const raw = res.data
 		const list: ProductVariant[] = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []
 		return { data: list, message: raw?.message }
@@ -231,9 +225,9 @@ export async function getVariantsByProductId(productId: string, token?: string):
 }
 
 // VARIANT: get by id (admin)
-export async function getVariantById(productId: string, variantId: string, token?: string): Promise<ApiResponse<ProductVariant>> {
+export async function getVariantById(productId: string, variantId: string, _token?: string): Promise<ApiResponse<ProductVariant>> {
 	try {
-		const res = await api.get<any>(`/product/${encodeURIComponent(productId)}/variant/${encodeURIComponent(variantId)}`, { headers: authHeaders(token) })
+		const res = await api.get<any>(`/product/${encodeURIComponent(productId)}/variant/${encodeURIComponent(variantId)}`)
 		const raw = res.data
 		const data = raw?.data ?? raw
 		return { data, message: raw?.message }
@@ -243,9 +237,9 @@ export async function getVariantById(productId: string, variantId: string, token
 }
 
 // VARIANT: add to product (admin)
-export async function addProductVariant(productId: string, dto: AddVariantDTO, token?: string): Promise<ApiResponse<ProductVariant>> {
+export async function addProductVariant(productId: string, dto: AddVariantDTO, _token?: string): Promise<ApiResponse<ProductVariant>> {
 	try {
-		const res = await api.post<any>(`/product/${encodeURIComponent(productId)}/variant`, dto, { headers: authHeaders(token) })
+		const res = await api.post<any>(`/product/${encodeURIComponent(productId)}/variant`, dto)
 		return { data: res.data, message: res.data?.message }
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -253,13 +247,12 @@ export async function addProductVariant(productId: string, dto: AddVariantDTO, t
 }
 
 // IMPORT: CSV/Excel file (admin)
-export async function importProducts(file: File, token?: string): Promise<ApiResponse<{ imported: number } | unknown>> {
+export async function importProducts(file: File, _token?: string): Promise<ApiResponse<{ imported: number } | unknown>> {
 	try {
 		const form = new FormData()
 		form.append('file', file)
 		const res = await api.post<any>(`/product/import`, form, {
 			headers: {
-				...(authHeaders(token) || {}),
 				'Content-Type': 'multipart/form-data',
 			},
 		})

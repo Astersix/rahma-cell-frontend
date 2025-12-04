@@ -1,4 +1,4 @@
-import { api, API_BASE_URL } from './api.service'
+import { api } from './api.service'
 
 export type PaymentMethod = 'cod' | 'qris'
 export type CheckoutMethod = 'cart' | 'direct'
@@ -41,13 +41,13 @@ export const orderService = {
 
   // POST /payment/:orderId/qris
   initiateQris: async (orderId: string | number) => {
-    const res = await api.post(`${API_BASE_URL}/payment/${orderId}/qris`)
+    const res = await api.post(`/payment/${orderId}/qris`)
     return res.data
   },
 
   // GET /payment/:orderId
   getPaymentByOrder: async (orderId: string | number) => {
-    const res = await api.get(`${API_BASE_URL}/payment/${orderId}`)
+    const res = await api.get(`/payment/${orderId}`)
     return res.data
   },
 
@@ -55,5 +55,32 @@ export const orderService = {
   getMyOrders: async (params?: { page?: number; limit?: number; status?: string }) => {
     const res = await api.get(`/order/me`, { params })
     return res.data
+  },
+
+  // Admin: GET /order (list all orders) if available
+  getAllOrdersAdmin: async (params?: { page?: number; limit?: number; status?: string }) => {
+    const res = await api.get(`/order`, { params })
+    return res.data
+  },
+  
+  // New: fetch single order details (admin/customer with proper auth)
+  getOrderById: async (orderId: string) => {
+    const { data } = await api.get(`/order/${orderId}`)
+    return data
+  },
+  
+  // New: update order status or details (admin)
+  updateOrderStatus: async (
+    orderId: string,
+    payload: { status?: string; trackingNumber?: string; note?: string }
+  ) => {
+    const { data } = await api.patch(`/order/${orderId}`, payload)
+    return data
+  },
+  
+  // New: cancel an order by id (customer/admin as allowed by backend)
+  cancelOrder: async (orderId: string) => {
+    const { data } = await api.post(`/order/${orderId}/cancel`)
+    return data
   },
 }

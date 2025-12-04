@@ -1,11 +1,14 @@
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
+import ButtonIcon from '../../components/ui/ButtonIcon'
 import ProductCategory, { type CategoryItem } from '../../components/ui/ProductCategory'
 import { useState, useMemo, useEffect } from 'react'
 import { getAllProduct, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
 import { getAllCategories } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
 import { Link } from 'react-router-dom'
+
+const PAGE_SIZE = 20
 
 const HomePage = () => {
 	const [category, setCategory] = useState<string>('all')
@@ -15,6 +18,10 @@ const HomePage = () => {
 	const [loadingCategories, setLoadingCategories] = useState(false)
 	const [errorProducts, setErrorProducts] = useState<string | null>(null)
 	const [errorCategories, setErrorCategories] = useState<string | null>(null)
+	const [page, setPage] = useState<number>(1)
+	const [hasNext, setHasNext] = useState<boolean>(false)
+	const [totalPages, setTotalPages] = useState<number>(1)
+	const [totalCount, setTotalCount] = useState<number | null>(null)
 	const { isAuthenticated, token } = useAuthStore()
 
 	useEffect(() => {
@@ -22,14 +29,29 @@ const HomePage = () => {
 			setLoadingProducts(true)
 			setErrorProducts(null)
 			try {
-				const res = await getAllProduct(undefined, token || undefined)
+				const res: any = await getAllProduct({ page, limit: PAGE_SIZE }, token || undefined)
 				const list = (res.data || []).map((p: any) => ({
 					...p,
 					id: String(p.id ?? p.product_id ?? p.productId ?? p.ulid ?? p.uid ?? ''),
 					category_id: String(p.category_id ?? p.categoryId ?? ''),
 				}))
 
-				const withThumb = await Promise.all(list.map(async (p) => {
+				// Determine if there is next page using meta if available
+				const meta = res?.meta
+				if (meta) {
+					const current = Number(meta.page || meta.currentPage || page)
+					const last = Number(meta.lastPage || meta.last || current)
+					setHasNext(current < last)
+					setTotalPages(Math.max(1, last))
+					if (typeof meta.total !== 'undefined') setTotalCount(Number(meta.total))
+				} else {
+					// Fallback when meta is not provided
+					setHasNext((list?.length ?? 0) === PAGE_SIZE)
+					setTotalPages(page + ((list?.length ?? 0) === PAGE_SIZE ? 1 : 0))
+					setTotalCount(null)
+				}
+
+				const withThumb = await Promise.all(list.map(async (p: any) => {
 					try {
 						const vres = await getVariantsByProductId(String(p.id), token || undefined)
 						const variants: ProductVariant[] = vres.data || []
@@ -45,7 +67,8 @@ const HomePage = () => {
 						return { ...p }
 					}
 				}))
-				setProducts(withThumb as any)
+				// Cap to maximum PAGE_SIZE items displayed per page
+				setProducts((withThumb as any).slice(0, PAGE_SIZE))
 			} catch (err: any) {
 				setErrorProducts(err.message || 'Gagal memuat produk')
 			} finally {
@@ -53,7 +76,7 @@ const HomePage = () => {
 			}
 		}
 		fetchProducts()
-	}, [])
+	}, [page, token])
 
 	useEffect(() => {
 		async function fetchCategories() {
@@ -132,6 +155,44 @@ const HomePage = () => {
 									</div>
 								)
 							})}
+						</div>
+						<div className="flex items-center justify-end px-1 sm:px-0 py-3 text-xs text-neutral-600">
+							<div className="flex items-center gap-1">
+							<ButtonIcon
+								aria-label="Prev"
+								icon="arrow-left"
+								size="sm"
+								variant="light"
+								className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
+								onClick={() => setPage(p => Math.max(1, p - 1))}
+								disabled={page === 1 || loadingProducts}
+							/>
+							{Array.from({ length: Math.max(1, totalPages) }).map((_, idx) => {
+								const pnum = idx + 1
+								const active = pnum === page
+								return (
+									<button
+										key={pnum}
+										onClick={() => setPage(pnum)}
+										className={active
+											? 'h-8 w-8 rounded-md bg-black text-white'
+											: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
+										disabled={loadingProducts}
+									>
+										{pnum}
+									</button>
+								)
+							})}
+							<ButtonIcon
+								aria-label="Next"
+								icon="arrow-right"
+								size="sm"
+								variant="light"
+								className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
+								onClick={() => setPage(p => p + 1)}
+								disabled={!hasNext || loadingProducts}
+							/>
+							</div>
 						</div>
 					</div>
 				</div>

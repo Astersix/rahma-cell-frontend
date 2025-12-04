@@ -1,18 +1,5 @@
 import axios from 'axios'
-
-// Base URL Normalization
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
-const API_BASE_URL = RAW_BASE
-	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
-	: 'http://localhost:5000/api'
-
-const api = axios.create({
-	baseURL: API_BASE_URL,
-	withCredentials: false,
-	headers: {
-		'Content-Type': 'application/json',
-	},
-})
+import { api } from './api.service'
 
 export type LoginPayload = {
 	email: string
@@ -64,6 +51,28 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
 export async function register(payload: RegisterPayload): Promise<AuthResponse> {
 	try {
 		const res = await api.post<AuthResponse>('/auth/register', payload)
+		return res.data
+	} catch (err) {
+		const info = normalizeAxiosError(err)
+		throw info
+	}
+}
+
+// Refresh access token: POST /auth/refresh
+export async function refreshToken(): Promise<AuthResponse> {
+	try {
+		const res = await api.post<AuthResponse>('/auth/refresh')
+		return res.data
+	} catch (err) {
+		const info = normalizeAxiosError(err)
+		throw info
+	}
+}
+
+// Logout: POST /auth/logout
+export async function logout(): Promise<{ message?: string; [k: string]: unknown }> {
+	try {
+		const res = await api.post('/auth/logout')
 		return res.data
 	} catch (err) {
 		const info = normalizeAxiosError(err)

@@ -1,21 +1,5 @@
 import axios from 'axios'
-import { attachAuthInterceptor, API_BASE_URL } from './api.service'
-
-// Base URL Normalization
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
-const BASE = RAW_BASE
-	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
-	: API_BASE_URL
-
-const api = axios.create({
-	baseURL: BASE,
-	withCredentials: false,
-	headers: {
-		'Content-Type': 'application/json',
-	},
-})
-
-attachAuthInterceptor(api)
+import { api } from './api.service'
 
 export type ISODateString = string
 
@@ -59,17 +43,12 @@ function normalizeAxiosError(err: unknown) {
 	return { message: String(err) }
 }
 
-function authHeaders(token?: string) {
-	if (!token) return undefined
-	const raw = String(token)
-	const t = raw.replace(/^Bearer\s+/i, '')
-	return { Authorization: `Bearer ${t}` }
-}
+// Auth handled by interceptor
 
-// GET /users/me -> { message, data: UserProfile }
-export async function getMyProfile(token?: string): Promise<UserProfile> {
+// GET /user/me -> { message, data: UserProfile }
+export async function getMyProfile(_token?: string): Promise<UserProfile> {
 	try {
-		const res = await api.get('/users/me', { headers: authHeaders(token) })
+		const res = await api.get('/user/me')
 		const raw = res.data
 		return (raw?.data ?? raw) as UserProfile
 	} catch (err) {
@@ -77,20 +56,20 @@ export async function getMyProfile(token?: string): Promise<UserProfile> {
 	}
 }
 
-// PATCH /users/me/profile
-export async function updateMyProfile(dto: UpdateProfileDto, token?: string) {
+// PATCH /user/me/profile
+export async function updateMyProfile(dto: UpdateProfileDto, _token?: string) {
 	try {
-		const res = await api.patch('/users/me/profile', dto, { headers: authHeaders(token) })
+		const res = await api.patch('/user/me/profile', dto)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
 	}
 }
 
-// PATCH /users/me/address (upsert default)
-export async function updateMyDefaultAddress(dto: UpdateAddressDto, token?: string) {
+// PATCH /user/me/address (upsert default)
+export async function updateMyDefaultAddress(dto: UpdateAddressDto, _token?: string) {
 	try {
-		const res = await api.patch('/users/me/address', dto, { headers: authHeaders(token) })
+		const res = await api.patch('/user/me/address', dto)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)

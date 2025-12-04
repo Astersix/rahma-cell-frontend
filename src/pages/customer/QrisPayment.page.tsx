@@ -121,7 +121,7 @@ const QrisPaymentPage = () => {
                     )}
                   </div>
                   <div className="mb-2 text-lg font-bold tracking-wider text-neutral-900">{hh}:{mm}:{ss}</div>
-                  <div className="text-center text-xs text-neutral-600">Pindai kode QR di bawah menggunakan m-banking atau e-wallet Anda. Status pesanan akan berubah menjadi "Diproses" secara otomatis setelah pembayaran terkonfirmasi.</div>
+                  <div className="text-center text-xs text-neutral-600">Pindai kode QR di atas menggunakan m-banking atau e-wallet Anda. Status pesanan akan berubah menjadi "Diproses" secara otomatis setelah pembayaran terkonfirmasi.</div>
                 </div>
                 <div className="mt-4">
                   <Button fullWidth className="bg-red-600 hover:bg-red-700 active:bg-red-800">Batalkan Pesanan</Button>
