@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance } from 'axios'
+import { useAuthStore } from '../store/auth.store'
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:5000/api'
 
@@ -21,7 +22,15 @@ export function attachAuthInterceptor(instance: AxiosInstance) {
     const headers: Record<string, any> = (config.headers as any) || {}
     const hasAuth = !!headers.Authorization
     if (!hasAuth) {
-      const token = getPersistedToken()
+      // Prefer persisted token; fallback to Zustand store state
+      let token = getPersistedToken()
+      if (!token) {
+        try {
+          token = useAuthStore.getState().token || null
+        } catch {
+          token = null
+        }
+      }
       if (token) {
         const t = String(token).replace(/^Bearer\s+/i, '')
         headers.Authorization = `Bearer ${t}`

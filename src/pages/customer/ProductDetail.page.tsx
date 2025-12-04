@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import { getProductById, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
+import { getCategoryById } from '../../services/category.service'
 import { addItemToCart, getCartByUserId } from '../../services/cart.service'
 import { getMyProfile } from '../../services/user.service'
 import { useAuthStore } from '../../store/auth.store'
@@ -24,6 +25,7 @@ const ProductDetailPage = () => {
 	const [qty, setQty] = useState<number>(1)
 	const token = useAuthStore(s => s.token || undefined)
 	const [actionMsg, setActionMsg] = useState<string | null>(null)
+	const [categoryName, setCategoryName] = useState<string>('')
 
 	useEffect(() => {
 		if (!id) return
@@ -41,6 +43,17 @@ const ProductDetailPage = () => {
 				setProduct(p)
 				const vs = vres.data || []
 				setVariants(vs)
+												// Fetch category name for the product
+												if (p?.category_id) {
+													try {
+														const cres = await getCategoryById(String(p.category_id))
+														setCategoryName(cres?.data?.name || '')
+													} catch {
+														setCategoryName('')
+													}
+												} else {
+													setCategoryName('')
+												}
 				const first = vs[0]
 				const firstThumb = first?.product_image?.find((img) => img.is_thumbnail)?.image_url || first?.product_image?.[0]?.image_url || null
 				setSelectedVariantId(first?.id || null)
@@ -166,7 +179,11 @@ const ProductDetailPage = () => {
 							<h1 className="text-2xl font-semibold text-neutral-900">{product.name}</h1>
 							<p className="mt-2 max-w-xl text-sm text-neutral-600">{product.description || 'Tidak ada deskripsi.'}</p>
 
-							<div className="my-4 h-px bg-neutral-200" />
+														<div className="my-4 h-px bg-neutral-200" />
+
+														<div className="mb-3 text-sm text-neutral-700">
+															<span className="font-medium">Kategori:</span> <span>{categoryName || '—'}</span>
+														</div>
 
 							<div className="mb-4 flex items-end gap-3">
 								<div className="text-2xl font-semibold text-neutral-900">{priceText}</div>
