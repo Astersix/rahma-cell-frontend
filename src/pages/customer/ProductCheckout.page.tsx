@@ -75,14 +75,6 @@ const ProductCheckoutPage = () => {
 
 	const subtotal = useMemo(() => displayItems.reduce((s, it) => s + (Number(it.price) || 0) * it.quantity, 0), [displayItems])
 
-  // Resolve variant IDs for display items, fallback to cart by key
-	const selectedVariantIds = useMemo(() => {
-		const ids = displayItems.map((it: any) => it.variantId).filter(Boolean) as string[]
-		if (ids.length) return ids
-		const setKeys = new Set(displayItems.map((it: any) => it.key))
-		return cartItems.filter(ci => setKeys.has(ci.key)).map(ci => String(ci.variantId))
-	}, [displayItems, cartItems])
-
 	async function handlePlaceOrder() {
 		if (!token) {
 			alert('Silakan login untuk membuat pesanan.')
@@ -96,7 +88,8 @@ const ProductCheckoutPage = () => {
 		try {
 			setPlacing(true)
 			// Build backend-compatible payload (snake_case)
-			const checkout_method: PlaceOrderRequest['checkout_method'] = stateSelectedItems && stateSelectedItems.length ? 'direct' : 'cart'
+			// Always use 'cart' checkout method since all checkouts flow through the cart
+			const checkout_method: PlaceOrderRequest['checkout_method'] = 'cart'
 			const items = displayItems.map((it: any) => {
 				const pvId = it.variantId || cartItems.find(ci => ci.key === it.key)?.variantId
 				return { product_variant_id: String(pvId || ''), quantity: Number(it.quantity) || 0 }
@@ -116,12 +109,8 @@ const ProductCheckoutPage = () => {
 			const res = await orderService.placeOrder(payload)
 			const orderId = res?.data?.order_id
 
-			// If QRIS: navigate to payment page (QRIS flow)
+			// If QRIS: navigate to payment page (QRIS will be initiated there)
 			if (payment === 'qris' && orderId) {
-				try {
-					// optional: initiate QR to ensure payment is prepared
-					await orderService.initiateQris(orderId)
-				} catch {}
 				navigate(`/payment/${orderId}`)
 			} else {
 				// Otherwise: show success popup for non-QRIS (e.g., COD)
