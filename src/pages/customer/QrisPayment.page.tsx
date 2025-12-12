@@ -36,18 +36,17 @@ const QrisPaymentPage = () => {
         const found = Array.isArray(list) ? list.find((o) => String(o.id) === String(orderId)) : null
         if (mounted) setOrder(found || null)
 
-        // Initiate QRIS and extract QR URL robustly across possible shapes
-        const qrRes = await paymentService.initiateQris(orderId)
-        const anyRes = qrRes as any
-        const url =
-          anyRes?.data?.qr?.qr_url ||
-          anyRes?.qr?.qr_url ||
-          anyRes?.qr?.url ||
-          anyRes?.payment?.qr_code_url ||
-          null
-        if (mounted) setQrUrl(typeof url === 'string' ? url : null)
-
-        // Start polling payment status in background
+			// Initiate QRIS and extract QR URL from backend response
+			const qrRes = await paymentService.initiateQris(orderId)
+			const anyRes = qrRes as any
+			// Backend returns: { data: { qr: { url: '...' }, payment: { qr_code: '...' } } }
+			const url =
+				anyRes?.data?.qr?.url ||
+				anyRes?.data?.payment?.qr_code ||
+				anyRes?.qr?.url ||
+				anyRes?.payment?.qr_code ||
+				null
+			if (mounted) setQrUrl(typeof url === 'string' ? url : null)        // Start polling payment status in background
         paymentService.waitForSettlement(orderId, { intervalMs: 3000, timeoutMs: 30 * 60 * 1000 }).then((p) => {
           const st = (p?.payment?.status || '').toString().toLowerCase()
           if (['settlement', 'capture', 'paid', 'success'].includes(st)) {
