@@ -1,50 +1,54 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import axios from 'axios';
+import { create } from 'zustand';
 
-export type CartItem = {
-  key: string // productId:variantId
-  productId: string
-  productName: string
-  variantId: string
-  variantName?: string
-  price?: number
-  imageUrl?: string
-  quantity: number
+
+interface CartItem {
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
 }
 
 interface CartState {
-  items: CartItem[]
-  addItem: (item: Omit<CartItem, 'key'>, quantity?: number) => void
-  updateQuantity: (key: string, quantity: number) => void
-  removeItem: (key: string) => void
-  clear: () => void
+  items: CartItem[];
+  isLoading: boolean;
+  fetchCart: () => Promise<void>;
+  clearCart: () => void;
+  totalPrice: () => number;
 }
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set, get) => ({
-      items: [], loading: false,
-      addItem: (item, quantity = 1) => {
-        const key = `${item.productId}:${item.variantId}`
-        const items = [...get().items]
-        const existing = items.find((i) => i.key === key)
-        if (existing) {
-          existing.quantity = Math.max(1, existing.quantity + quantity)
-          set({ items: [...items] })
-        } else {
-          items.push({ key, ...item, quantity: Math.max(1, quantity) })
-          set({ items })
+export const useCartStore = create<CartState>((set, get) => ({
+  items: [],
+  isLoading: false,
+
+  fetchCart: async () => {
+    set({ isLoading: true });
+    try {
+      const token = localStorage.getItem('token'); // Ambil token user yg login
+      const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+      // Panggil API dari backend
+      const response = await axios.get(`${API_URL}/cart/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      },
-      updateQuantity: (key, quantity) => {
-        const q = Math.max(1, quantity)
-        set({
-          items: get().items.map((i) => (i.key === key ? { ...i, quantity: q } : i)),
-        })
-      },
-      removeItem: (key) => set({ items: get().items.filter((i) => i.key !== key) }),
-      clear: () => set({ items: [] }),
-    }),
-    { name: 'cart-store' },
-  ),
-)
+      });
+
+      // Masukkan data dari backend ke state
+      // (Asumsi backend kirim array produk di response.data.items atau response.data)
+      set({ items: response.data.items || response.data });
+      
+    } catch (error) {
+      console.error("Gagal mengambil keranjang:", error);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  clearCart: () => set({ items: [] }),
+
+  totalPrice: () => {
+    return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
+  },
+}));
