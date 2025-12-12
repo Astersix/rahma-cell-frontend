@@ -1,4 +1,10 @@
+import { useEffect, useState } from "react"
 import AdminLayout from "../../layouts/AdminLayout"
+import { dashboardService, type DashboardStats } from "../../services/dashboard.service"
+import { getLowStockProducts, type LowStockItem } from "../../services/product.service"
+import ButtonIcon from "../../components/ui/ButtonIcon"
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
 
 const StatCard = ({ title, value, delta, sub }: { title: string; value: string; delta: string; sub: string }) => (
 	<div className="rounded-md border border-neutral-200 bg-white p-4">
@@ -66,6 +72,93 @@ const LineChart = () => {
 }
 
 const AdminDashboard = () => {
+	const [stats, setStats] = useState<DashboardStats | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+	const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([])
+	const [loadingLowStock, setLoadingLowStock] = useState(true)
+	const [lowStockPage, setLowStockPage] = useState(1)
+	const LOW_STOCK_PAGE_SIZE = 10
+
+	const fetchStats = async () => {
+		try {
+			setLoading(true)
+			setError(null)
+			const data = await dashboardService.getAllStats()
+			setStats(data)
+		} catch (err) {
+			console.error('Failed to fetch dashboard stats:', err)
+			setError('Gagal memuat data dashboard')
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	const fetchLowStock = async () => {
+		try {
+			setLoadingLowStock(true)
+			const response = await getLowStockProducts(5)
+			setLowStockItems(response.data)
+		} catch (err) {
+			console.error('Failed to fetch low stock items:', err)
+		} finally {
+			setLoadingLowStock(false)
+		}
+	}
+
+	useEffect(() => {
+		fetchStats()
+		fetchLowStock()
+	}, [])
+
+	const formatCurrency = (value: number) => {
+		return new Intl.NumberFormat('id-ID', {
+			style: 'currency',
+			currency: 'IDR',
+			minimumFractionDigits: 0,
+		}).format(value)
+	}
+
+	const formatPercentage = (value: number) => {
+		const sign = value >= 0 ? '+' : ''
+		return `${sign}${value.toFixed(1)}%`
+	}
+
+	// Pagination for low stock items
+	const totalLowStockPages = Math.max(1, Math.ceil(lowStockItems.length / LOW_STOCK_PAGE_SIZE))
+	const paginatedLowStock = lowStockItems.slice(
+		(lowStockPage - 1) * LOW_STOCK_PAGE_SIZE,
+		lowStockPage * LOW_STOCK_PAGE_SIZE
+	)
+
+	if (loading) {
+		return (
+			<AdminLayout sidebarActive="dashboard">
+				<div className="mx-auto max-w-full">
+					<h1 className="mb-2 text-2xl font-semibold text-black">Dashboard</h1>
+					<p className="mb-6 text-sm text-neutral-600">Memuat data...</p>
+				</div>
+			</AdminLayout>
+		)
+	}
+
+	if (error || !stats) {
+		return (
+			<AdminLayout sidebarActive="dashboard">
+				<div className="mx-auto max-w-full">
+					<h1 className="mb-2 text-2xl font-semibold text-black">Dashboard</h1>
+					<p className="mb-6 text-sm text-red-600">{error || 'Terjadi kesalahan'}</p>
+					<button
+						onClick={fetchStats}
+						className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+					>
+						Coba Lagi
+					</button>
+				</div>
+			</AdminLayout>
+		)
+	}
+
 	return (
 		<AdminLayout sidebarActive="dashboard">
 			<div className="mx-auto max-w-full">
@@ -78,13 +171,41 @@ const AdminDashboard = () => {
 						<button className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white">Hari ini</button>
 						<button className="rounded-md px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100">30 Hari</button>
 					</div>
+					<button
+						onClick={fetchStats}
+						className="ml-auto rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100"
+						aria-label="Refresh"
+						title="Refresh data"
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<polyline points="23 4 23 10 17 10" />
+							<polyline points="1 20 1 14 7 14" />
+							<path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10" />
+							<path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14" />
+						</svg>
+					</button>
 				</div>
 
 				{/* Top stats */}
 				<div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					<StatCard title="Total Pendapatan" value="Rp 15.250.000" delta="+12%" sub="+230.000 dari kemarin" />
-					<StatCard title="Total Pesanan" value="254" delta="+8%" sub="+30 dari kemarin" />
-					<StatCard title="Produk Terjual" value="565" delta="+10%" sub="+5 dari kemarin" />
+					<StatCard
+						title="Total Pendapatan"
+						value={formatCurrency(stats.totalIncome)}
+						delta={formatPercentage(stats.incomeChange)}
+						sub="dari kemarin"
+					/>
+					<StatCard
+						title="Total Pesanan"
+						value={stats.totalOrders.toString()}
+						delta={formatPercentage(stats.orderChange)}
+						sub="dari kemarin"
+					/>
+					<StatCard
+						title="Produk Terjual"
+						value={stats.totalSelling.toString()}
+						delta={formatPercentage(stats.sellingChange)}
+						sub="dari kemarin"
+					/>
 				</div>
 
 				{/* Produk Terlaris */}
@@ -114,26 +235,88 @@ const AdminDashboard = () => {
 					<div className="flex items-center justify-between px-4 py-3">
 						<div className="flex items-center gap-2">
 							<div className="text-sm font-semibold text-neutral-900">Peringatan Stok Rendah</div>
-							<span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">5 item</span>
+							<span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+								{lowStockItems.length} item
+							</span>
 						</div>
 					</div>
 					<div className="divide-y divide-neutral-200">
-						{Array.from({ length: 5 }).map((_, i) => (
-							<div key={i} className="flex items-center justify-between px-4 py-3 text-sm">
-								<div className="flex min-w-0 items-center gap-3">
-									<div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-100 text-neutral-500">📦</div>
-									<div className="min-w-0">
-										<div className="truncate font-medium text-neutral-900">iPhone 15 Pro Max</div>
-										<div className="truncate text-xs text-neutral-500">SKU: IP15PM-256</div>
+						{loadingLowStock ? (
+							<div className="px-4 py-8 text-center text-sm text-neutral-500">
+								Memuat data stok rendah...
+							</div>
+						) : paginatedLowStock.length === 0 ? (
+							<div className="px-4 py-8 text-center text-sm text-neutral-500">
+								Tidak ada produk dengan stok rendah
+							</div>
+						) : (
+							paginatedLowStock.map((item) => (
+								<div key={item.variantId} className="flex items-center justify-between px-4 py-3 text-sm">
+									<div className="flex min-w-0 items-center gap-3">
+										<div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-100 overflow-hidden">
+											{item.thumbnail ? (
+												<img
+													src={`${API_BASE_URL}${item.thumbnail}`}
+													alt={item.productName}
+													className="h-full w-full object-cover"
+												/>
+											) : (
+												<span className="text-neutral-500">📦</span>
+											)}
+										</div>
+										<div className="min-w-0">
+											<div className="truncate font-medium text-neutral-900">{item.productName}</div>
+											<div className="truncate text-xs text-neutral-500">Varian: {item.variantName}</div>
+										</div>
+									</div>
+									<div className="flex items-center gap-10">
+										<div className="text-red-600 font-semibold">{item.stock} unit</div>
 									</div>
 								</div>
-								<div className="flex items-center gap-10">
-									<div className="text-red-600">3 unit</div>
-									<div className="text-neutral-600">10 unit</div>
-								</div>
-							</div>
-						))}
+							))
+						)}
 					</div>
+					{lowStockItems.length > 0 && (
+						<div className="flex items-center justify-between border-t border-neutral-200 px-4 py-3 text-xs text-neutral-600">
+							<span>
+								Menampilkan {paginatedLowStock.length} dari {lowStockItems.length} produk stok rendah
+							</span>
+							<div className="flex items-center gap-1">
+								<ButtonIcon
+									aria-label="Prev"
+									icon="arrow-left"
+									size="sm"
+									variant="light"
+									className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100"
+									onClick={() => setLowStockPage(p => Math.max(1, p - 1))}
+								/>
+								{Array.from({ length: totalLowStockPages }).map((_, idx) => {
+									const pageNum = idx + 1
+									return (
+										<button
+											key={pageNum}
+											onClick={() => setLowStockPage(pageNum)}
+											className={`h-8 w-8 rounded-md text-xs font-medium transition-colors ${
+												pageNum === lowStockPage
+													? 'bg-neutral-900 text-white'
+													: 'text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100'
+											}`}
+										>
+											{pageNum}
+										</button>
+									)
+								})}
+								<ButtonIcon
+									aria-label="Next"
+									icon="arrow-right"
+									size="sm"
+									variant="light"
+									className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100"
+									onClick={() => setLowStockPage(p => Math.min(totalLowStockPages, p + 1))}
+								/>
+							</div>
+						</div>
+					)}
 				</div>
 			</div>
 		</AdminLayout>
