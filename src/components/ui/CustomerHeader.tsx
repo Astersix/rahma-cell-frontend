@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth.store'
 import ProfileOption from './ProfileOption'
+import PopupModal from './PopupModal'
 
 export interface CustomerHeaderProps {
 	className?: string
@@ -34,6 +35,7 @@ const CustomerHeader = ({
     variant = 'light',
 }: CustomerHeaderProps) => {
 	const [open, setOpen] = useState(false)
+	const [showLogoutModal, setShowLogoutModal] = useState(false)
 	const menuRef = useRef<HTMLDivElement | null>(null)
 	const navigate = useNavigate()
 	const { logout } = useAuthStore()
@@ -45,7 +47,9 @@ const CustomerHeader = ({
 			}
 		}
 		function handleEsc(e: KeyboardEvent) {
-			if (e.key === 'Escape') setOpen(false)
+			if (e.key === 'Escape' && !showLogoutModal) {
+				setOpen(false)
+			}
 		}
 		document.addEventListener('mousedown', handleClickOutside)
 		document.addEventListener('keydown', handleEsc)
@@ -53,13 +57,21 @@ const CustomerHeader = ({
 			document.removeEventListener('mousedown', handleClickOutside)
 			document.removeEventListener('keydown', handleEsc)
 		}
-	}, [])
+	}, [showLogoutModal])
 
 	function handleLogout() {
-		// Default behavior if parent doesn't provide custom handler
+		setShowLogoutModal(true)
+		setOpen(false)
+	}
+
+	function handleConfirmLogout() {
+		setShowLogoutModal(false)
 		logout()
 		navigate('/landing')
-		setOpen(false)
+	}
+
+	function handleCancelLogout() {
+		setShowLogoutModal(false)
 	}
 
 	function handleMyAccount() {
@@ -83,6 +95,7 @@ const CustomerHeader = ({
 	const isDark = variant === 'dark'
 
 	return (
+		<>
 		<header
 			className={cn(
 				'fixed left-0 top-0 z-50 w-full border-b backdrop-blur',
@@ -216,8 +229,26 @@ const CustomerHeader = ({
 				</div>
 			</div>
 		</header>
+
+		<PopupModal
+			open={showLogoutModal}
+			onClose={handleCancelLogout}
+			icon="warning"
+			title="Apakah Anda yakin ingin keluar?"
+			description="Tindakan ini tidak dapat dibatalkan"
+			primaryButton={{
+				label: 'Kembali',
+				variant: 'filled',
+				onClick: handleCancelLogout,
+			}}
+			secondaryButton={{
+				label: 'Keluar',
+				variant: 'outlined',
+				onClick: handleConfirmLogout,
+			}}
+		/>
+	</>
 	)
 }
 
 export default CustomerHeader
-

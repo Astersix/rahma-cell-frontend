@@ -5,7 +5,6 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { useCartStore } from '../../store/cart.store'
 import { useAuthStore } from '../../store/auth.store'
-import PaymentSuccessPopup from '../../components/ui/PaymentSuccessPopup'
 import { orderService, type PlaceOrderRequest } from '../../services/order.service'
 import { getMyProfile, type Address } from '../../services/user.service'
 
@@ -277,7 +276,6 @@ const ProductCheckoutPage = () => {
 						</Card>
 					</div>
 				</div>
-				<PaymentSuccessPopup open={showSuccess} onClose={() => setShowSuccess(false)} />
 			</div>
 		</CustomerLayout>
 	)

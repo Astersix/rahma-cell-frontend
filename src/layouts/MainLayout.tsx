@@ -19,7 +19,7 @@ const MainLayout = ({ children, className, navbarVariant = 'light', navbarRight,
 		<div className={cn('min-h-screen flex flex-col bg-white text-black', className)}>
 			{headerComponent ?? <Navbar variant={navbarVariant} rightSlot={navbarRight} />}
 			{/* top padding to offset fixed navbar height when applicable */}
-			<main className={cn('mx-auto w-full max-w-7xl flex-1 px-4 py-8 md:px-6', headerFixed && 'pt-20')}>
+			<main className={cn('mx-auto w-full max-w-7xl flex-1 px-4 md:px-6', headerFixed && 'pt-20')}>
 				{children}
 			</main>
 			<Footer />
