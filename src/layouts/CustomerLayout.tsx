@@ -26,13 +26,13 @@ const CustomerLayout = ({
   const cartCount = items.length // distinct product+variant entries; change to sum quantities if desired
 
   return (
-    <div className={cn('min-h-screen w-full', className)}>
+    <div className={cn('min-h-screen w-full flex flex-col', className)}>
       <CustomerHeader
         variant={headerVariant}
         rightExtra={headerExtraRight}
         cartCount={cartCount}
       />
-      <main className={cn('mx-auto w-full px-4 md:px-6', headerFixed && 'pt-20')}>
+      <main className={cn('mx-auto w-full flex-1 px-4 md:px-6', headerFixed && 'pt-20')}>
         {children}
       </main>
       <div className="mt-12" />

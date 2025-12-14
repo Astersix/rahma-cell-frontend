@@ -5,6 +5,10 @@ import ProductDetailPage from '../pages/customer/ProductDetail.page'
 import ProductCartPage from '../pages/customer/ProductCart.page'
 import ProductCheckoutPage from '../pages/customer/ProductCheckout.page'
 import OrderHistoryPage from '../pages/customer/OrderHistory.page'
+import OrderDetailPage from '../pages/customer/OrderDetail.page'
+import ProfileDetailPage from '../pages/customer/ProfileDetail.page'
+import AddAddressPage from '../pages/customer/AddAddress.page'
+import UpdateAddressPage from '../pages/customer/UpdateAddress.page'
 import QrisPaymentPage from '../pages/customer/QrisPayment.page'
 import LoginPage from '../pages/LoginPage.page'
 import AdminDashboard from '../pages/admin/AdminDashboard.page'
@@ -22,12 +26,38 @@ import PublicRoute from './PublicRoute'
 const AppRouter = () => {
 	return (
 		<Routes>
-			<Route path="/" element={<Navigate to="/landing" replace />} />
+			<Route 
+				path="/"
+				element={
+					<Navigate to="/landing" replace />
+				} 
+			/>
 
 			{/* Public routes */}
-			<Route path="/landing" element={<PublicRoute><LandingPage /></PublicRoute>} />
-			<Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-			<Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+			<Route 
+				path="/landing"
+				element={
+					<PublicRoute>
+						<LandingPage />
+					</PublicRoute>
+				}
+			/>
+			<Route 
+				path="/login" 
+				element={
+					<PublicRoute>
+						<LoginPage />
+					</PublicRoute>
+				}
+			/>
+			<Route 
+				path="/register" 
+				element={
+					<PublicRoute>
+						<RegisterPage />
+					</PublicRoute>
+				}
+			/>
 
 			{/* Customer routes */}
 			<Route
@@ -67,6 +97,38 @@ const AppRouter = () => {
 				element={
 					<ProtectedRoute allowedRoles={['customer']}>
 						<OrderHistoryPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/orders/:orderId"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<OrderDetailPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/profile"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<ProfileDetailPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/address/add"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<AddAddressPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/address/edit/:id"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<UpdateAddressPage />
 					</ProtectedRoute>
 				}
 			/>
@@ -136,9 +198,14 @@ const AppRouter = () => {
 					</ProtectedRoute>
 				}
 			/>
-
+		
 			{/* Fallback */}
-			<Route path="*" element={<Navigate to="/landing" replace />} />
+			<Route 
+				path="*" 
+				element={
+					<Navigate to="/landing" replace />
+				} 
+			/>
 		</Routes>
 	)
 }
