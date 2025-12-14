@@ -66,40 +66,10 @@ export async function updateMyProfile(dto: UpdateProfileDto, _token?: string) {
 	}
 }
 
-// PATCH /user/me/address (upsert default)
+// PATCH /user/me/address (upsert default address)
 export async function updateMyDefaultAddress(dto: UpdateAddressDto, _token?: string) {
 	try {
 		const res = await api.patch('/user/me/address', dto)
-		return res.data
-	} catch (err) {
-		throw normalizeAxiosError(err)
-	}
-}
-
-// POST /user/me/address (create new address)
-export async function createAddress(dto: UpdateAddressDto, _token?: string) {
-	try {
-		const res = await api.post('/user/me/address', dto)
-		return res.data
-	} catch (err) {
-		throw normalizeAxiosError(err)
-	}
-}
-
-// PATCH /user/me/address/:id (update specific address)
-export async function updateAddress(addressId: string, dto: UpdateAddressDto, _token?: string) {
-	try {
-		const res = await api.patch(`/user/me/address/${addressId}`, dto)
-		return res.data
-	} catch (err) {
-		throw normalizeAxiosError(err)
-	}
-}
-
-// DELETE /user/me/address/:id (delete address)
-export async function deleteAddress(addressId: string, _token?: string) {
-	try {
-		const res = await api.delete(`/user/me/address/${addressId}`)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
