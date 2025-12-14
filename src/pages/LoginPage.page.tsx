@@ -22,16 +22,29 @@ const LoginPage = () => {
 		setLoading(true)
 		try {
 			const data = await login({ email, password })
-			const role = (data.user?.role === 'admin') ? 'admin' : 'user'
-			const token = (data as any).token
-				?? (data as any).accessToken
-				?? (data as any).jwt
-				?? (data as any)?.data?.token
-				?? (data as any)?.data?.accessToken
-				?? null
-			if (role === 'admin') loginAsAdmin(token); else loginAsUser(token)
+			console.log('Login response:', data) // Debug log
+			
+			const role = (data.user?.role === 'admin') ? 'admin' : 'customer'
+			const token = data.accessToken 
+				|| data.token 
+				|| (data as any).jwt
+				|| (data as any)?.data?.token
+				|| (data as any)?.data?.accessToken
+				|| null
+			
+			if (!token) {
+				throw new Error('Token tidak ditemukan dalam respons')
+			}
+			
+			if (role === 'admin') {
+				loginAsAdmin(token)
+			} else {
+				loginAsUser(token)
+			}
+			
 			navigate(role === 'admin' ? '/admin/dashboard' : '/homepage')
 		} catch (err: any) {
+			console.error('Login error:', err) // Debug log
 			const message = err?.message || err?.data?.message || 'Gagal masuk. Coba lagi.'
 			setError(message)
 		} finally {

@@ -194,11 +194,13 @@ const ProductDetailPage = () => {
 				variantId: String(selectedVariant.id)
 			}
 			
-			// Navigate to checkout with the item data
+			// Navigate to checkout with the item data and buyNow flag
 			navigate('/checkout', {
 				state: {
 					selectedItems: [checkoutItem],
-					selectedKeys: [checkoutItem.key]
+					selectedKeys: [checkoutItem.key],
+					isBuyNow: true,
+					buyNowVariantId: String(selectedVariant.id)
 				}
 			})
 		} catch (err: any) {
@@ -213,7 +215,7 @@ const ProductDetailPage = () => {
 				<nav className="mb-4 text-xs text-neutral-500">
 					<button
 						type="button"
-						onClick={() => window.history.back()}
+						onClick={() => navigate('/')}
 						className="text-neutral-600 hover:underline"
 					>
 						Beranda

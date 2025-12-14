@@ -285,15 +285,12 @@ export async function getLowStockProducts(threshold: number = 5, _token?: string
 			const raw = res.data
 			const products: Product[] = extractArray<Product>(raw)
 			
-			console.log(`Fetching page ${currentPage}, got ${products.length} products`)
-			
 			if (!products || products.length === 0) break
 			
 			allProducts.push(...products)
 			
 			// Check if there are more pages - backend uses 'hasNext' in meta
 			const meta = raw?.meta || raw?.pagination || raw?.data?.meta
-			console.log('Meta:', meta)
 			
 			// If we got fewer products than the limit, we're on the last page
 			if (products.length < limit) break
@@ -304,8 +301,6 @@ export async function getLowStockProducts(threshold: number = 5, _token?: string
 			currentPage++
 			if (currentPage > 100) break // Safety limit
 		}
-		
-		console.log('Total products fetched:', allProducts.length)
 		
 		// Now process each product to find low stock variants
 		const lowStockPromises = allProducts.map(async (product) => {
@@ -321,7 +316,6 @@ export async function getLowStockProducts(threshold: number = 5, _token?: string
 				if (Array.isArray(variants)) {
 					for (const variant of variants) {
 						const stock = Number(variant.stock)
-						console.log(`Product: ${product.name}, Variant: ${variant.variant_name}, Stock: ${stock}`)
 						
 						// Check if stock is low (including 0 stock items)
 						if (!isNaN(stock) && stock <= threshold) {
@@ -345,7 +339,6 @@ export async function getLowStockProducts(threshold: number = 5, _token?: string
 				
 				return items
 			} catch (err) {
-				console.error(`Failed to fetch details for product ${product.id}:`, err)
 				return []
 			}
 		})
@@ -354,14 +347,29 @@ export async function getLowStockProducts(threshold: number = 5, _token?: string
 		const allLowStockArrays = await Promise.all(lowStockPromises)
 		const lowStockItems = allLowStockArrays.flat()
 		
-		console.log('Low stock items found:', lowStockItems.length)
-		
 		// Sort by stock ascending (lowest first)
 		lowStockItems.sort((a, b) => a.stock - b.stock)
 		
 		return { data: lowStockItems, message: 'Low stock items retrieved' }
 	} catch (err) {
-		console.error('Error in getLowStockProducts:', err)
+		throw normalizeAxiosError(err)
+	}
+}
+
+// PREDICTION: Get stock prediction for a variant
+export interface PredictionResult {
+	variantId: string
+	predictedStock: number
+	confidence?: number
+	message?: string
+}
+
+export async function predictVariantStock(variantId: string, _token?: string): Promise<ApiResponse<PredictionResult>> {
+	try {
+		const res = await api.get<any>(`/product/variant/${encodeURIComponent(variantId)}/predict`)
+		const raw = res.data
+		return { data: raw?.data ?? raw, message: raw?.message }
+	} catch (err) {
 		throw normalizeAxiosError(err)
 	}
 }
