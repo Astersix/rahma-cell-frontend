@@ -9,6 +9,7 @@ import OrderDetailPage from '../pages/customer/OrderDetail.page'
 import ProfileDetailPage from '../pages/customer/ProfileDetail.page'
 import AddAddressPage from '../pages/customer/AddAddress.page'
 import UpdateAddressPage from '../pages/customer/UpdateAddress.page'
+import NotificationPage from '../pages/customer/Notification.page'
 import QrisPaymentPage from '../pages/customer/QrisPayment.page'
 import LoginPage from '../pages/LoginPage.page'
 import AdminDashboard from '../pages/admin/AdminDashboard.page'
@@ -129,6 +130,14 @@ const AppRouter = () => {
 				element={
 					<ProtectedRoute allowedRoles={['customer']}>
 						<UpdateAddressPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/notifications"
+				element={
+					<ProtectedRoute allowedRoles={['customer']}>
+						<NotificationPage />
 					</ProtectedRoute>
 				}
 			/>
