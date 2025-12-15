@@ -8,6 +8,7 @@ import { uploadTempImages, finalizeImages, deleteTempImage, deleteFinalImage } f
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth.store'
+import { API_BASE_URL } from '../../services/api.service'
 
 const AdminUpdateProductPage = () => {
   const { id } = useParams<{ id: string }>()
@@ -20,8 +21,9 @@ const AdminUpdateProductPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [variants, setVariants] = useState<Array<{ id?: string; variant_name?: string; price?: number; stock?: number; images: Array<{ id?: string; image_url?: string; tempName?: string; previewUrl: string; is_thumbnail?: boolean }> }>>([])
+  const [variants, setVariants] = useState<Array<{ id?: string; variant_name?: string; price?: number; stock?: number; images: Array<{ id?: string; image_url?: string; tempName?: string; previewUrl: string; is_thumbnail?: boolean }>; imageDeleted?: boolean }>>([])
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [productThumbnail, setProductThumbnail] = useState<{ variantIdx: number; imageIdx: number } | null>(null)
 
   function fileNameFromUrl(url: string) {
     try {
@@ -46,7 +48,7 @@ const AdminUpdateProductPage = () => {
         setCategoryId(p.data?.category_id ?? '')
         setCategories(cats.data || [])
         const v = await getVariantsByProductId(id as string, token || undefined)
-        setVariants((v.data || []).map((it) => ({
+        const mappedVariants = (v.data || []).map((it) => ({
           id: it.id,
           variant_name: it.variant_name,
           price: it.price as number | undefined,
@@ -59,7 +61,23 @@ const AdminUpdateProductPage = () => {
                 is_thumbnail: !!img.is_thumbnail 
               }))
             : []
-        })))
+        }))
+        setVariants(mappedVariants)
+        
+        // Find and set the current product thumbnail
+        for (let vIdx = 0; vIdx < mappedVariants.length; vIdx++) {
+          const imgIdx = mappedVariants[vIdx].images.findIndex(img => img.is_thumbnail)
+          if (imgIdx !== -1) {
+            setProductThumbnail({ variantIdx: vIdx, imageIdx: imgIdx })
+            break
+          }
+        }
+        // If no thumbnail found, set first image as default
+        if (mappedVariants.length > 0 && mappedVariants[0].images.length > 0) {
+          if (!mappedVariants.some(v => v.images.some(img => img.is_thumbnail))) {
+            setProductThumbnail({ variantIdx: 0, imageIdx: 0 })
+          }
+        }
       } catch (err: any) {
         setError(err?.message || 'Gagal memuat data produk')
       }
@@ -112,24 +130,43 @@ const AdminUpdateProductPage = () => {
       }
       await updateProduct(id, dto, token || undefined)
 
-      for (const v of variants) {
-        const base = {
+      for (let vIdx = 0; vIdx < variants.length; vIdx++) {
+        const v = variants[vIdx]
+        const base: any = {
           variant_name: v.variant_name,
           price: v.price,
           stock: v.stock,
-          images: (v.images || []).map(img => ({
-            id: img.id,
-            image_url: img.image_url || img.previewUrl,
-            is_thumbnail: !!img.is_thumbnail
-          }))
+        }
+        
+        // If image was explicitly deleted, send null to remove from database
+        if (v.imageDeleted) {
+          base.image = null
+        } else {
+          // Backend expects single 'image' object, not 'images' array
+          const primaryImage = v.images?.[0]
+          if (primaryImage) {
+            let imageUrl = primaryImage.image_url || primaryImage.previewUrl
+            // Convert relative path to full URL for backend validation
+            if (imageUrl && imageUrl.startsWith('/')) {
+              const baseUrl = API_BASE_URL.replace('/api', '')
+              imageUrl = `${baseUrl}${imageUrl}`
+            }
+            // Mark as thumbnail only if this is the selected product thumbnail
+            const isThumbnail = productThumbnail?.variantIdx === vIdx && productThumbnail?.imageIdx === 0
+            base.image = {
+              id: primaryImage.id,
+              image_url: imageUrl,
+              is_thumbnail: isThumbnail
+            }
+          }
         }
         
         if (v.id) {
-          // Update existing variant with all data including images
-          await updateProductVariant(v.id, base as any, token || undefined)
+          // Update existing variant with single image
+          await updateProductVariant(v.id, base, token || undefined)
         } else {
-          // Create new variant with all images
-          await addProductVariant(id, base as any, token || undefined)
+          // Create new variant with single image
+          await addProductVariant(id, base, token || undefined)
         }
       }
       setSuccess('Perubahan disimpan')
@@ -151,15 +188,17 @@ const AdminUpdateProductPage = () => {
         if (img.tempName) {
           // It's a temp image, delete from temp
           await deleteTempImage(img.tempName)
-        } else if (img.image_url) {
+        } else if (img.image_url || img.previewUrl) {
           // It's a final image, extract filename and delete
-          const fileName = img.image_url.split('/').pop()
+          const fileName = fileNameFromUrl(img.image_url || img.previewUrl)
           if (fileName) {
             await deleteFinalImage(fileName)
           }
         }
-      } catch (e) {
-        // Silent fail - continue with UI update
+      } catch (e: any) {
+        // Show error but continue with UI update
+        setError(e?.message || 'Gagal menghapus gambar dari server')
+        console.error('Delete image error:', e)
       }
     }
     
@@ -169,7 +208,8 @@ const AdminUpdateProductPage = () => {
       if (filtered.length && !filtered.some(im => im.is_thumbnail)) {
         filtered[0] = { ...filtered[0], is_thumbnail: true }
       }
-      return { ...pv, images: filtered }
+      // Mark that image was deleted so backend knows to remove DB record
+      return { ...pv, images: filtered, imageDeleted: filtered.length === 0 }
     }))
   }
 
@@ -185,15 +225,16 @@ const AdminUpdateProductPage = () => {
         if (oldImage.tempName) {
           // It's a temp image, delete from temp
           await deleteTempImage(oldImage.tempName)
-        } else if (oldImage.image_url) {
+        } else if (oldImage.image_url || oldImage.previewUrl) {
           // It's a final image, extract filename and delete
-          const fileName = oldImage.image_url.split('/').pop()
+          const fileName = fileNameFromUrl(oldImage.image_url || oldImage.previewUrl)
           if (fileName) {
             await deleteFinalImage(fileName)
           }
         }
       } catch (e) {
         // Silent fail - continue with upload
+        console.warn('Failed to delete old image:', e)
       }
     }
     
@@ -210,10 +251,13 @@ const AdminUpdateProductPage = () => {
             tempName: result.tempName, 
             previewUrl: result.previewUrl, 
             is_thumbnail: true 
-          }] 
+          }],
+          imageDeleted: false
         }
         return nv
       })
+      // Automatically set this image as the product thumbnail
+      setProductThumbnail({ variantIdx: idx, imageIdx: 0 })
     } catch (e: any) {
       setError(e?.message || 'Gagal mengunggah gambar')
     } finally {
@@ -349,8 +393,13 @@ const AdminUpdateProductPage = () => {
                               <div className="max-w-[320px] truncate text-sm text-neutral-800">{fileNameFromUrl(v.images[0].previewUrl)}</div>
                             </div>
                             <div className="flex items-center gap-3">
-                              <label className="flex items-center gap-1 text-xs text-neutral-700">
-                                <input type="radio" name={`thumb-${i}`} checked readOnly />
+                              <label className="flex items-center gap-1 text-xs text-neutral-700 cursor-pointer">
+                                <input 
+                                  type="radio" 
+                                  name="product-thumbnail" 
+                                  checked={productThumbnail?.variantIdx === i && productThumbnail?.imageIdx === 0}
+                                  onChange={() => setProductThumbnail({ variantIdx: i, imageIdx: 0 })}
+                                />
                                 Thumbnail Utama
                               </label>
                               <button type="button" onClick={() => removeImage(i, 0)} className="text-neutral-500 hover:text-red-600" aria-label="Hapus">🗑️</button>

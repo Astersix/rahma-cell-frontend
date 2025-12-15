@@ -17,8 +17,8 @@ export interface InitiateQrisResponse {
 	data?: {
 		payment?: any
 		qr?: {
-			qr_string?: string
-			qr_url?: string
+			url?: string
+			expiry?: string | null
 			[k: string]: unknown
 		} | null
 		midtrans?: any

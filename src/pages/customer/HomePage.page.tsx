@@ -190,7 +190,7 @@ const HomePage = () => {
 								onClick={() => setPage(p => Math.max(1, p - 1))}
 								disabled={page === 1 || loadingProducts}
 							/>
-							{Array.from({ length: Math.max(1, totalPages) }).map((_, idx) => {
+								{Array.from({ length: Math.max(1, totalPages) }).map((_, idx) => {
 								const pnum = idx + 1
 								const active = pnum === page
 								return (
@@ -213,7 +213,7 @@ const HomePage = () => {
 								variant="light"
 								className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
 								onClick={() => setPage(p => p + 1)}
-								disabled={!hasNext || loadingProducts}
+									disabled={!hasNext || loadingProducts}
 							/>
 							</div>
 						</div>

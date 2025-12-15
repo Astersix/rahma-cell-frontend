@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import PopupModal from '../../components/ui/PopupModal'
 import { orderService } from '../../services/order.service'
 import { paymentService } from '../../services/payment.service'
 
@@ -21,6 +22,7 @@ const QrisPaymentPage = () => {
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [timer, setTimer] = useState<number>(30 * 60) // 30 minutes
   const [statusLabel, setStatusLabel] = useState<string>('Menunggu Pembayaran')
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const items = useMemo(() => (Array.isArray(order?.order_product) ? order.order_product : []), [order])
   const subtotal = useMemo(() => items.reduce((s: number, it: any) => s + (Number(it?.price) || 0) * (Number(it?.quantity) || 0), 0), [items])
@@ -39,14 +41,11 @@ const QrisPaymentPage = () => {
         
         // Initiate QRIS payment (backend will return existing if already created)
         const qrRes = await paymentService.initiateQris(orderId)
-        const anyRes = qrRes as any
         
-        // Extract QR URL from response
+        // Extract QR URL from response (prioritize new structure)
         const url =
-          anyRes?.data?.qr?.url ||
-          anyRes?.data?.payment?.qr_code ||
-          anyRes?.qr?.url ||
-          anyRes?.payment?.qr_code ||
+          qrRes?.data?.qr?.url ||
+          qrRes?.data?.payment?.qr_code ||
           null
         
         if (mounted && typeof url === 'string') {
@@ -59,8 +58,7 @@ const QrisPaymentPage = () => {
           const st = (p?.payment?.status || '').toString().toLowerCase()
           if (['settlement', 'capture', 'paid', 'success'].includes(st)) {
             setStatusLabel('Pembayaran Berhasil')
-            // redirect after small delay
-            setTimeout(() => navigate('/orders'), 1200)
+            setShowSuccessModal(true)
           } else if (['failed', 'expire', 'cancel'].includes(st)) {
             setStatusLabel('Pembayaran Gagal/Kedaluwarsa')
           }
@@ -179,6 +177,25 @@ const QrisPaymentPage = () => {
           </div>
         </div>
       </div>
+
+      <PopupModal
+        open={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false)
+          navigate('/orders')
+        }}
+        icon="success"
+        title="Pembayaran Berhasil!"
+        description="Pesanan Anda sedang diproses. Anda akan diarahkan ke halaman riwayat pesanan."
+        primaryButton={{
+          label: 'Lihat Pesanan',
+          variant: 'filled',
+          onClick: () => {
+            setShowSuccessModal(false)
+            navigate('/orders')
+          },
+        }}
+      />
     </CustomerLayout>
   )
 }
