@@ -9,7 +9,7 @@ export type UploadImageResult = {
 export async function uploadImage(file: File): Promise<UploadImageResult> {
 	const form = new FormData()
 	form.append('image', file)
-	const res = await api.post<UploadImageResult>('/upload-image/upload', form, {
+	const res = await api.post<UploadImageResult>('/upload-image', form, {
 		headers: { 'Content-Type': 'multipart/form-data' },
 	})
 	const data = res.data || ({} as any)
