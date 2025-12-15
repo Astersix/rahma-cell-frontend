@@ -76,3 +76,33 @@ export async function updateMyDefaultAddress(dto: UpdateAddressDto, _token?: str
 	}
 }
 
+// POST /user/me/add-address
+export async function createAddress(dto: UpdateAddressDto, _token?: string) {
+	try {
+		const res = await api.post('/user/me/add-address', dto)
+		return res.data
+	} catch (err) {
+		throw normalizeAxiosError(err)
+	}
+}
+
+// PUT /user/me/address/:addressId
+export async function updateAddress(addressId: string, dto: UpdateAddressDto, _token?: string) {
+	try {
+		const res = await api.put(`/user/me/address/${addressId}`, dto)
+		return res.data
+	} catch (err) {
+		throw normalizeAxiosError(err)
+	}
+}
+
+// DELETE /user/me/address/:addressId
+export async function deleteAddress(addressId: string, _token?: string) {
+	try {
+		const res = await api.delete(`/user/me/address/${addressId}`)
+		return res.data
+	} catch (err) {
+		throw normalizeAxiosError(err)
+	}
+}
+

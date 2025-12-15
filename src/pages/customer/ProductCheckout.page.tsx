@@ -80,7 +80,7 @@ const ProductCheckoutPage = () => {
 					await deleteCartItem(userId, String(cartItem.id), token)
 				}
 			} catch (err) {
-				console.error('Failed to cleanup cart item:', err)
+				// Silent cleanup error
 			}
 		}
 		navigate(-1)

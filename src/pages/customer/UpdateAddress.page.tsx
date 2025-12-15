@@ -157,8 +157,18 @@ const UpdateAddressPage = () => {
 			setShowErrorModal(true)
 			return
 		}
+		if (phone.trim().replace(/\D/g, '').length < 10) {
+			setErrorMessage('Nomor telepon harus minimal 10 digit')
+			setShowErrorModal(true)
+			return
+		}
 		if (!address.trim()) {
 			setErrorMessage('Alamat lengkap tidak boleh kosong')
+			setShowErrorModal(true)
+			return
+		}
+		if (address.trim().length < 10) {
+			setErrorMessage('Alamat lengkap harus minimal 10 karakter')
 			setShowErrorModal(true)
 			return
 		}
@@ -262,6 +272,7 @@ const UpdateAddressPage = () => {
 												className="border border-red-600 bg-white text-red-600 hover:bg-red-50"
 												onClick={handleCancel}
 												disabled={saving}
+												variant='light'
 											>
 												Batalkan
 											</Button>

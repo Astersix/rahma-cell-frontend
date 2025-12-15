@@ -27,6 +27,7 @@ const QrisPaymentPage = () => {
 
   useEffect(() => {
     let mounted = true
+    
     async function init() {
       if (!orderId) return
       try {
@@ -35,38 +36,26 @@ const QrisPaymentPage = () => {
         const list = (res?.data ?? res) as any[]
         const found = Array.isArray(list) ? list.find((o) => String(o.id) === String(orderId)) : null
         if (mounted) setOrder(found || null)
-
-        // Check if payment already exists before initiating new one
-        let url: string | null = null
-        try {
-          const existingPayment = await paymentService.getByOrder(orderId)
-          const payment = existingPayment?.payment
-          // If payment exists and has QR code, use it
-          if (payment?.qr_code) {
-            url = typeof payment.qr_code === 'string' ? payment.qr_code : null
-            if (mounted) setQrUrl(url)
-          }
-        } catch (err) {
-          // Payment doesn't exist yet, will initiate below
-          console.log('No existing payment found, will initiate new one')
-        }
-
-        // Only initiate new QRIS if no existing QR code found
-        if (!url) {
-          const qrRes = await paymentService.initiateQris(orderId)
-          const anyRes = qrRes as any
-          // Backend returns: { data: { qr: { url: '...' }, payment: { qr_code: '...' } } }
-          url =
-            anyRes?.data?.qr?.url ||
-            anyRes?.data?.payment?.qr_code ||
-            anyRes?.qr?.url ||
-            anyRes?.payment?.qr_code ||
-            null
-          if (mounted) setQrUrl(typeof url === 'string' ? url : null)
+        
+        // Initiate QRIS payment (backend will return existing if already created)
+        const qrRes = await paymentService.initiateQris(orderId)
+        const anyRes = qrRes as any
+        
+        // Extract QR URL from response
+        const url =
+          anyRes?.data?.qr?.url ||
+          anyRes?.data?.payment?.qr_code ||
+          anyRes?.qr?.url ||
+          anyRes?.payment?.qr_code ||
+          null
+        
+        if (mounted && typeof url === 'string') {
+          setQrUrl(url)
         }
 
         // Start polling payment status in background
         paymentService.waitForSettlement(orderId, { intervalMs: 3000, timeoutMs: 30 * 60 * 1000 }).then((p) => {
+          if (!mounted) return
           const st = (p?.payment?.status || '').toString().toLowerCase()
           if (['settlement', 'capture', 'paid', 'success'].includes(st)) {
             setStatusLabel('Pembayaran Berhasil')
@@ -77,12 +66,14 @@ const QrisPaymentPage = () => {
           }
         })
       } catch (e: any) {
-        setError(e?.message || 'Gagal memuat pembayaran')
-      } finally {
-        // no-op
+        if (mounted) {
+          setError(e?.message || 'Gagal memuat pembayaran')
+        }
       }
     }
+    
     init()
+    
     return () => {
       mounted = false
     }

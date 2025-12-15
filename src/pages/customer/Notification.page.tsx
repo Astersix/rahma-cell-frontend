@@ -99,7 +99,7 @@ const NotificationPage = () => {
 					prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
 				)
 			} catch (err) {
-				console.error('Failed to mark as read:', err)
+				// Silent error
 			}
 		}
 	}
@@ -110,7 +110,7 @@ const NotificationPage = () => {
 			await Promise.all(unreadNotifs.map((n) => notificationService.markAsRead(n.id!)))
 			setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
 		} catch (err) {
-			console.error('Failed to mark all as read:', err)
+			// Silent error
 		}
 	}
 
