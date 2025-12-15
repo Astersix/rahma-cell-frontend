@@ -23,7 +23,6 @@ const HomePage = () => {
 	const [page, setPage] = useState<number>(1)
 	const [hasNext, setHasNext] = useState<boolean>(false)
 	const [totalPages, setTotalPages] = useState<number>(1)
-	const [totalCount, setTotalCount] = useState<number | null>(null)
 	const { isAuthenticated, token } = useAuthStore()
 
 	useEffect(() => {
@@ -45,12 +44,11 @@ const HomePage = () => {
 					const last = Number(meta.lastPage || meta.last || current)
 					setHasNext(current < last)
 					setTotalPages(Math.max(1, last))
-					if (typeof meta.total !== 'undefined') setTotalCount(Number(meta.total))
+
 				} else {
 					// Fallback when meta is not provided
 					setHasNext((list?.length ?? 0) === PAGE_SIZE)
 					setTotalPages(page + ((list?.length ?? 0) === PAGE_SIZE ? 1 : 0))
-					setTotalCount(null)
 				}
 
 				const withThumb = await Promise.all(list.map(async (p: any) => {

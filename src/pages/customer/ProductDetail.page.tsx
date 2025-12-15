@@ -218,7 +218,7 @@ const ProductDetailPage = () => {
 						onClick={() => navigate('/admin/products')}
 						className="text-neutral-600 hover:underline"
 					>
-						← Kembali ke Daftar Produk
+						← Beranda
 					</button>
 					<span className="mx-2">/</span>
 					<span className="text-neutral-800">{product?.name ?? 'Memuat...'}</span>

@@ -30,7 +30,7 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [tab, setTab] = useState<'all' | 'menunggu_pembayaran' | 'diproses' | 'dikirim' | 'selesai' | 'dibatalkan'>('all')
+  const [tab, setTab] = useState<'all' | 'menunggu_konfirmasi' | 'menunggu_pembayaran' | 'diproses' | 'dikirim' | 'selesai' | 'batal'>('all')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 10
 
@@ -88,11 +88,12 @@ const OrdersPage = () => {
 
   const statuses = [
     { key: 'all', label: 'Semua' },
+    { key: 'menunggu_konfirmasi', label: 'Menunggu Konfirmasi' },
     { key: 'menunggu_pembayaran', label: 'Menunggu Pembayaran' },
     { key: 'diproses', label: 'Diproses' },
     { key: 'dikirim', label: 'Dikirim' },
     { key: 'selesai', label: 'Selesai' },
-    { key: 'dibatalkan', label: 'Dibatalkan' },
+    { key: 'batal', label: 'Dibatalkan' },
   ] as const
 
   function formatIDR(n?: number) {
@@ -162,11 +163,12 @@ const OrdersPage = () => {
                   <td className="px-4 py-3">{formatIDR(o.total)}</td>
                   <td className="px-4 py-3">{(o.payment_method || '').toUpperCase()}</td>
                   <td className="px-4 py-3">
-                    {o.status === 'menunggu_pembayaran' ? <StatusBadge label="Menunggu Pembayaran" tone="warning" />
+                    {o.status === 'menunggu_konfirmasi' ? <StatusBadge label="Menunggu Konfirmasi" tone="warning" />
+                      : o.status === 'menunggu_pembayaran' ? <StatusBadge label="Menunggu Pembayaran" tone="warning" />
                       : o.status === 'diproses' ? <StatusBadge label="Diproses" tone="process" />
                       : o.status === 'dikirim' ? <StatusBadge label="Dikirim" tone="process" />
                       : o.status === 'selesai' ? <StatusBadge label="Selesai" tone="success" />
-                      : o.status === 'dibatalkan' ? <StatusBadge label="Dibatalkan" tone="warning" />
+                      : o.status === 'batal' ? <StatusBadge label="Dibatalkan" tone="warning" />
                       : <span className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700">{o.status}</span>}
                   </td>
                 </tr>

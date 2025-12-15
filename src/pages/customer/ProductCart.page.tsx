@@ -139,7 +139,7 @@ const ProductCartPage = () => {
 		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
 				<nav className="mb-6 text-xs text-neutral-500">
-					<button onClick={() => navigate('/')} className="text-neutral-600 hover:underline">Beranda</button>
+					<button onClick={() => navigate('/')} className="text-neutral-600 hover:underline">← Beranda</button>
 					<span className="mx-2">/</span>
 					<span className="text-neutral-800">Keranjang Belanja</span>
 				</nav>

@@ -19,6 +19,7 @@ import AdminUpdateProductPage from '../pages/admin/AdminUpdateProduct.page'
 import AdminProductDetailPage from '../pages/admin/AdminProductDetail.page'
 import OrdersPage from '../pages/admin/AdminOrders.page'
 import AdminOrderDetailPage from '../pages/admin/AdminOrderDetail.page'
+import AdminNotificationPage from '../pages/admin/AdminNotification.page'
 import RegisterPage from '../pages/RegisterPage.page'
 import ProtectedRoute from './ProtectedRoute'
 import LandingPage from '../pages/LandingPage.page'
@@ -204,6 +205,14 @@ const AppRouter = () => {
 				element={
 					<ProtectedRoute allowedRoles={['admin']}>
 						<AdminOrderDetailPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/admin/notifications"
+				element={
+					<ProtectedRoute allowedRoles={['admin']}>
+						<AdminNotificationPage />
 					</ProtectedRoute>
 				}
 			/>

@@ -20,9 +20,11 @@ const QrisPaymentPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [order, setOrder] = useState<any | null>(null)
   const [qrUrl, setQrUrl] = useState<string | null>(null)
-  const [timer, setTimer] = useState<number>(30 * 60) // 30 minutes
+  const [paymentExpiry, setPaymentExpiry] = useState<Date | null>(null)
+  const [timer, setTimer] = useState<number>(15 * 60) // 15 minutes
   const [statusLabel, setStatusLabel] = useState<string>('Menunggu Pembayaran')
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showFailureModal, setShowFailureModal] = useState(false)
 
   const items = useMemo(() => (Array.isArray(order?.order_product) ? order.order_product : []), [order])
   const subtotal = useMemo(() => items.reduce((s: number, it: any) => s + (Number(it?.price) || 0) * (Number(it?.quantity) || 0), 0), [items])
@@ -52,6 +54,33 @@ const QrisPaymentPage = () => {
           setQrUrl(url)
         }
 
+        // Set payment expiry time (persist across refresh using localStorage)
+        if (mounted) {
+          const storageKey = `payment-expiry-${orderId}`
+          let expiry: Date
+          
+          // Check localStorage first for existing expiry
+          const storedExpiry = localStorage.getItem(storageKey)
+          if (storedExpiry) {
+            expiry = new Date(storedExpiry)
+          } else {
+            // Try to get expiry from backend response
+            const expiryStr = qrRes?.data?.qr?.expiry || qrRes?.data?.payment?.expiry_time
+            
+            if (expiryStr) {
+              expiry = new Date(expiryStr)
+            } else {
+              // If no expiry from backend, set 15 minutes from now
+              expiry = new Date(Date.now() + 15 * 60 * 1000)
+            }
+            
+            // Store expiry in localStorage for persistence across refresh
+            localStorage.setItem(storageKey, expiry.toISOString())
+          }
+          
+          setPaymentExpiry(expiry)
+        }
+
         // Start polling payment status in background
         paymentService.waitForSettlement(orderId, { intervalMs: 3000, timeoutMs: 30 * 60 * 1000 }).then((p) => {
           if (!mounted) return
@@ -59,6 +88,8 @@ const QrisPaymentPage = () => {
           if (['settlement', 'capture', 'paid', 'success'].includes(st)) {
             setStatusLabel('Pembayaran Berhasil')
             setShowSuccessModal(true)
+            // Clean up localStorage when payment succeeds
+            localStorage.removeItem(`payment-expiry-${orderId}`)
           } else if (['failed', 'expire', 'cancel'].includes(st)) {
             setStatusLabel('Pembayaran Gagal/Kedaluwarsa')
           }
@@ -78,10 +109,33 @@ const QrisPaymentPage = () => {
   }, [orderId, navigate])
 
   useEffect(() => {
-    if (timer <= 0) return
-    const t = setInterval(() => setTimer((v) => v - 1), 1000)
-    return () => clearInterval(t)
-  }, [timer])
+    if (!paymentExpiry) return
+    
+    const updateTimer = () => {
+      const now = Date.now()
+      const expiry = paymentExpiry.getTime()
+      const remaining = Math.max(0, Math.floor((expiry - now) / 1000))
+      
+      setTimer(remaining)
+      
+      if (remaining === 0 && statusLabel !== 'Pembayaran Berhasil') {
+        setStatusLabel('Pembayaran Kedaluwarsa')
+        setShowFailureModal(true)
+        // Clean up localStorage when payment expires
+        if (orderId) {
+          localStorage.removeItem(`payment-expiry-${orderId}`)
+        }
+      }
+    }
+    
+    // Update immediately
+    updateTimer()
+    
+    // Update every second
+    const interval = setInterval(updateTimer, 1000)
+    
+    return () => clearInterval(interval)
+  }, [paymentExpiry, statusLabel])
 
   const hh = String(Math.floor(timer / 3600)).padStart(2, '0')
   const mm = String(Math.floor((timer % 3600) / 60)).padStart(2, '0')
@@ -192,6 +246,25 @@ const QrisPaymentPage = () => {
           variant: 'filled',
           onClick: () => {
             setShowSuccessModal(false)
+            navigate('/orders')
+          },
+        }}
+      />
+
+      <PopupModal
+        open={showFailureModal}
+        onClose={() => {
+          setShowFailureModal(false)
+          navigate('/orders')
+        }}
+        icon="error"
+        title="Pembayaran Gagal"
+        description="Waktu pembayaran telah habis. Silakan buat pesanan baru untuk melanjutkan."
+        primaryButton={{
+          label: 'Kembali ke Pesanan',
+          variant: 'filled',
+          onClick: () => {
+            setShowFailureModal(false)
             navigate('/orders')
           },
         }}

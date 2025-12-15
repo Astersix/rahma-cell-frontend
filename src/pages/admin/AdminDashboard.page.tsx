@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react"
 import AdminLayout from "../../layouts/AdminLayout"
-import { dashboardService, type DashboardStats } from "../../services/dashboard.service"
+import { dashboardService, type DashboardStats, type BestSellingProduct, type SalesTrend } from "../../services/dashboard.service"
 import { getLowStockProducts, type LowStockItem } from "../../services/product.service"
 import ButtonIcon from "../../components/ui/ButtonIcon"
 
@@ -26,39 +26,48 @@ const StatCard = ({ title, value, delta, sub }: { title: string; value: string; 
 	</div>
 )
 
-const RefreshButton = () => (
-	<button type="button" className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100" aria-label="Refresh">
-		<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-			<polyline points="23 4 23 10 17 10" />
-			<polyline points="1 20 1 14 7 14" />
-			<path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10" />
-			<path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14" />
-		</svg>
-	</button>
-)
+// const RefreshButton = () => (
+// 	<button type="button" className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100" aria-label="Refresh">
+// 		<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+// 			<polyline points="23 4 23 10 17 10" />
+// 			<polyline points="1 20 1 14 7 14" />
+// 			<path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10" />
+// 			<path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14" />
+// 		</svg>
+// 	</button>
+// )
 
-const BarChart = () => {
-	const bars = [80, 65, 55, 48, 95, 30, 18, 12, 40, 72, 20, 10]
+const BarChart = ({ data }: { data: BestSellingProduct[] }) => {
+	if (!data || data.length === 0) {
+		return <div className="py-8 text-center text-sm text-neutral-500">Tidak ada data</div>
+	}
+	const maxSold = Math.max(...data.map(d => d.totalSold), 1)
 	return (
 		<div className="relative h-40 w-full">
 			<div className="absolute inset-0 flex items-end gap-2 px-3 pb-3">
-				{bars.map((h, i) => (
-					<div key={i} className="flex-1">
-						<div className="mx-auto w-4 rounded bg-red-500" style={{ height: `${Math.max(6, h)}%` }} />
-					</div>
-				))}
+				{data.slice(0, 12).map((item, i) => {
+					const heightPercent = (item.totalSold / maxSold) * 100
+					return (
+						<div key={i} className="flex-1 group relative" title={`${item.productName} - ${item.variantName}: ${item.totalSold} terjual`}>
+							<div className="mx-auto w-4 rounded bg-red-500 hover:bg-red-600 transition-colors" style={{ height: `${Math.max(6, heightPercent)}%` }} />
+						</div>
+					)
+				})}
 			</div>
 		</div>
 	)
 }
 
-const LineChart = () => {
-	const points = [23, 30, 18, 28, 26, 34, 20, 32, 24, 29, 18, 36, 22, 31, 27]
+const LineChart = ({ data }: { data: SalesTrend[] }) => {
+	if (!data || data.length === 0) {
+		return <div className="py-8 text-center text-sm text-neutral-500">Tidak ada data</div>
+	}
+	const points = data.map(d => d.sales)
 	const w = 600
 	const h = 180
 	const pad = 16
-	const max = 40
-	const stepX = (w - pad * 2) / (points.length - 1)
+	const max = Math.max(...points, 1)
+	const stepX = (w - pad * 2) / Math.max(points.length - 1, 1)
 	const toY = (v: number) => h - pad - (v / max) * (h - pad * 2)
 	const d = points.map((p, i) => `${pad + i * stepX},${toY(p)}`).join(" ")
 	return (
@@ -73,7 +82,9 @@ const LineChart = () => {
 				<polyline fill="none" stroke="#ef4444" strokeWidth="2" points={d} />
 				<polygon fill="url(#grad)" points={`${pad},${h - pad} ${d} ${w - pad},${h - pad}`} />
 				{points.map((p, i) => (
-					<circle key={i} cx={pad + i * stepX} cy={toY(p)} r="3" fill="#ef4444" />
+					<circle key={i} cx={pad + i * stepX} cy={toY(p)} r="3" fill="#ef4444">
+						<title>{data[i].date}: {p} penjualan</title>
+					</circle>
 				))}
 			</svg>
 		</div>
@@ -88,6 +99,9 @@ const AdminDashboard = () => {
 	const [loadingLowStock, setLoadingLowStock] = useState(true)
 	const [lowStockPage, setLowStockPage] = useState(1)
 	const [period, setPeriod] = useState<'daily' | '30days'>('daily')
+	const [bestSelling, setBestSelling] = useState<BestSellingProduct[]>([])
+	const [salesTrend, setSalesTrend] = useState<SalesTrend[]>([])
+	const [loadingCharts, setLoadingCharts] = useState(true)
 	const LOW_STOCK_PAGE_SIZE = 10
 
 	const fetchStats = useCallback(async (selectedPeriod: 'daily' | '30days') => {
@@ -105,13 +119,34 @@ const AdminDashboard = () => {
 		}
 	}, [])
 
+	const fetchChartData = useCallback(async (selectedPeriod: 'daily' | '30days') => {
+		try {
+			setLoadingCharts(true)
+			const [bestSellingData, trendData] = await Promise.all([
+				selectedPeriod === 'daily'
+					? dashboardService.getBestSellingProductDaily()
+					: dashboardService.getBestSellingProduct30Days(),
+				dashboardService.getSalesTrend30Days()
+			])
+			setBestSelling(bestSellingData)
+			setSalesTrend(trendData)
+		} catch (err) {
+			console.error('Failed to fetch chart data:', err)
+		} finally {
+			setLoadingCharts(false)
+		}
+	}, [])
+
 	const handlePeriodChange = (newPeriod: 'daily' | '30days') => {
 		setPeriod(newPeriod)
 		fetchStats(newPeriod)
+		fetchChartData(newPeriod)
 	}
 
 	const handleRefresh = () => {
 		fetchStats(period)
+		fetchChartData(period)
+		fetchLowStock()
 	}
 
 	const fetchLowStock = useCallback(async () => {
@@ -128,8 +163,9 @@ const AdminDashboard = () => {
 
 	useEffect(() => {
 		fetchStats(period)
+		fetchChartData(period)
 		fetchLowStock()
-	}, [period, fetchStats, fetchLowStock])
+	}, [period, fetchStats, fetchChartData, fetchLowStock])
 
 	const formatCurrency = (value: number) => {
 		return new Intl.NumberFormat('id-ID', {
@@ -252,21 +288,43 @@ const AdminDashboard = () => {
 				<div className="mb-6 rounded-md border border-neutral-200 bg-white">
 					<div className="flex items-center justify-between px-4 py-3">
 						<div className="text-sm font-semibold text-neutral-900">Produk Terlaris</div>
-						<RefreshButton />
-					</div>
-					<div className="px-2 pb-2">
-						<BarChart />
+					<button onClick={handleRefresh} className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100" aria-label="Refresh">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<polyline points="23 4 23 10 17 10" />
+							<polyline points="1 20 1 14 7 14" />
+							<path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10" />
+							<path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14" />
+						</svg>
+					</button>
+				</div>
+				<div className="px-2 pb-2">
+					{loadingCharts ? (
+						<div className="py-8 text-center text-sm text-neutral-500">Memuat...</div>
+					) : (
+						<BarChart data={bestSelling} />
+					)}
 					</div>
 				</div>
 
 				{/* Tren Penjualan */}
 				<div className="mb-6 rounded-md border border-neutral-200 bg-white">
 					<div className="flex items-center justify-between px-4 py-3">
-						<div className="text-sm font-semibold text-neutral-900">Tren Penjualan</div>
-						<RefreshButton />
-					</div>
-					<div className="px-4 pb-4">
-						<LineChart />
+					<div className="text-sm font-semibold text-neutral-900">Tren Penjualan (30 Hari)</div>
+					<button onClick={handleRefresh} className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100" aria-label="Refresh">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<polyline points="23 4 23 10 17 10" />
+							<polyline points="1 20 1 14 7 14" />
+							<path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10" />
+							<path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14" />
+						</svg>
+					</button>
+				</div>
+				<div className="px-4 pb-4">
+					{loadingCharts ? (
+						<div className="py-8 text-center text-sm text-neutral-500">Memuat...</div>
+					) : (
+						<LineChart data={salesTrend} />
+					)}
 					</div>
 				</div>
 
