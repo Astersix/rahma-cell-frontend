@@ -162,6 +162,11 @@ const ProfileDetailPage = () => {
 			setShowErrorModal(true)
 			return
 		}
+		if (phone.trim().replace(/\D/g, '').length < 10) {
+			setErrorMessage('Nomor telepon harus minimal 10 digit')
+			setShowErrorModal(true)
+			return
+		}
 		if (!email.trim()) {
 			setErrorMessage('Email tidak boleh kosong')
 			setShowErrorModal(true)
@@ -233,6 +238,7 @@ setErrorMessage(err?.message || 'Gagal menyimpan profil')
 		if (!addressToDelete || !token) return
 		try {
 			setDeleting(true)
+			// Delete the address
 			await deleteAddress(addressToDelete, token)
 			// Reload profile to refresh address list
 			const data = await getMyProfile(token)
@@ -379,7 +385,7 @@ setErrorMessage(err?.message || 'Gagal menyimpan profil')
 														<button
 																type="button"
 																onClick={() => handleEditAddress(addr.id)}
-																className="rounded p-1.5 text-neutral-600 hover:bg-neutral-100"
+																className="rounded p-1.5 text-neutral-600 hover:bg-red-50 hover:text-red-600"
 																aria-label="Edit"
 															>
 																<IconEdit />

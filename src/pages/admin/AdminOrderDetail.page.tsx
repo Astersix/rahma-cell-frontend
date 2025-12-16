@@ -53,7 +53,7 @@ const AdminOrderDetailPage = () => {
 			setSelectedStatus(data?.status || '')
 			navigate('/admin/orders', { state: { refreshAfter: 'status-update' } })
 		} catch (e: any) {
-			console.error('Failed to update status:', e?.message || 'Gagal mengubah status pesanan')
+			// Silent error
 		} finally {
 			setUpdating(false)
 		}

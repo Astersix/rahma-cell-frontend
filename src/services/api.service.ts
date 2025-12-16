@@ -44,7 +44,7 @@ export function attachAuthInterceptor(instance: AxiosInstance) {
 // Default API instance with interceptor (optional for services to reuse)
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: false,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },

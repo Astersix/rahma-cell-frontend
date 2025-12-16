@@ -6,11 +6,13 @@ import { useState, useMemo, useEffect } from 'react'
 import { getAllProduct, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
 import { getAllCategories } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 const PAGE_SIZE = 20
 
 const HomePage = () => {
+	const [searchParams] = useSearchParams()
+	const searchQuery = searchParams.get('search') || ''
 	const [category, setCategory] = useState<string>('all')
 	const [products, setProducts] = useState<Product[]>([])
 	const [categories, setCategories] = useState<CategoryItem[]>([{ key: 'all', label: 'Semua Produk', icon: 'all' }])
@@ -100,9 +102,24 @@ const HomePage = () => {
 	}, [isAuthenticated, token])
 
 	const filtered = useMemo(() => {
-		if (category === 'all') return products
-		return products.filter(p => p.category_id === category)
-	}, [category, products])
+		let result = products
+		
+		// Filter by category
+		if (category !== 'all') {
+			result = result.filter(p => p.category_id === category)
+		}
+		
+		// Filter by search query
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase()
+			result = result.filter(p => 
+				p.name.toLowerCase().includes(query) ||
+				p.description?.toLowerCase().includes(query)
+			)
+		}
+		
+		return result
+	}, [category, products, searchQuery])
 
 		return (
 		<CustomerLayout>
@@ -119,8 +136,14 @@ const HomePage = () => {
 					</div>
 					<div className="space-y-6">
 						<div>
-							<h2 className="text-xl font-semibold">Produk Terbaru</h2>
-							<p className="mt-1 text-sm text-neutral-600">Temukan gadget impian Anda dengan harga terbaik</p>
+							<h2 className="text-xl font-semibold">
+								{searchQuery ? `Hasil Pencarian "${searchQuery}"` : 'Produk Terbaru'}
+							</h2>
+							<p className="mt-1 text-sm text-neutral-600">
+								{searchQuery 
+									? `Menampilkan ${filtered.length} produk yang ditemukan` 
+									: 'Temukan gadget impian Anda dengan harga terbaik'}
+							</p>
 						</div>
 						{loadingProducts && <p className="text-sm text-neutral-500">Memuat produk...</p>}
 						{errorProducts && <p className="text-sm text-red-600">{errorProducts}</p>}

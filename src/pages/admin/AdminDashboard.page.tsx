@@ -1,10 +1,19 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import AdminLayout from "../../layouts/AdminLayout"
 import { dashboardService, type DashboardStats } from "../../services/dashboard.service"
 import { getLowStockProducts, type LowStockItem } from "../../services/product.service"
 import ButtonIcon from "../../components/ui/ButtonIcon"
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+
+// Helper to construct image URL - only prepend API_BASE_URL if it's a relative path
+const getImageUrl = (url?: string | null): string | undefined => {
+	if (!url) return undefined
+	// If URL already has protocol (http:// or https://), return as-is
+	if (url.startsWith('http://') || url.startsWith('https://')) return url
+	// Otherwise prepend API base URL
+	return `${API_BASE_URL}${url}`
+}
 
 const StatCard = ({ title, value, delta, sub }: { title: string; value: string; delta: string; sub: string }) => (
 	<div className="rounded-md border border-neutral-200 bg-white p-4">
@@ -78,38 +87,49 @@ const AdminDashboard = () => {
 	const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([])
 	const [loadingLowStock, setLoadingLowStock] = useState(true)
 	const [lowStockPage, setLowStockPage] = useState(1)
+	const [period, setPeriod] = useState<'daily' | '30days'>('daily')
 	const LOW_STOCK_PAGE_SIZE = 10
 
-	const fetchStats = async () => {
+	const fetchStats = useCallback(async (selectedPeriod: 'daily' | '30days') => {
 		try {
 			setLoading(true)
 			setError(null)
-			const data = await dashboardService.getAllStats()
+			const data = selectedPeriod === 'daily' 
+				? await dashboardService.getAllStats()
+				: await dashboardService.getAllStats30Days()
 			setStats(data)
 		} catch (err) {
-			console.error('Failed to fetch dashboard stats:', err)
 			setError('Gagal memuat data dashboard')
 		} finally {
 			setLoading(false)
 		}
+	}, [])
+
+	const handlePeriodChange = (newPeriod: 'daily' | '30days') => {
+		setPeriod(newPeriod)
+		fetchStats(newPeriod)
 	}
 
-	const fetchLowStock = async () => {
+	const handleRefresh = () => {
+		fetchStats(period)
+	}
+
+	const fetchLowStock = useCallback(async () => {
 		try {
 			setLoadingLowStock(true)
 			const response = await getLowStockProducts(5)
 			setLowStockItems(response.data)
 		} catch (err) {
-			console.error('Failed to fetch low stock items:', err)
+			// Silent error handling
 		} finally {
 			setLoadingLowStock(false)
 		}
-	}
+	}, [])
 
 	useEffect(() => {
-		fetchStats()
+		fetchStats(period)
 		fetchLowStock()
-	}, [])
+	}, [period, fetchStats, fetchLowStock])
 
 	const formatCurrency = (value: number) => {
 		return new Intl.NumberFormat('id-ID', {
@@ -149,7 +169,7 @@ const AdminDashboard = () => {
 					<h1 className="mb-2 text-2xl font-semibold text-black">Dashboard</h1>
 					<p className="mb-6 text-sm text-red-600">{error || 'Terjadi kesalahan'}</p>
 					<button
-						onClick={fetchStats}
+						onClick={handleRefresh}
 						className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
 					>
 						Coba Lagi
@@ -163,16 +183,36 @@ const AdminDashboard = () => {
 		<AdminLayout sidebarActive="dashboard">
 			<div className="mx-auto max-w-full">
 				<h1 className="mb-2 text-2xl font-semibold text-black">Dashboard</h1>
-				<p className="mb-6 text-sm text-neutral-600">Ringkasan performa toko dan penjualan hari ini.</p>
+				<p className="mb-6 text-sm text-neutral-600">
+					Ringkasan performa toko dan penjualan {period === 'daily' ? 'hari ini' : '30 hari terakhir'}.
+				</p>
 
 				{/* Range selector */}
 				<div className="mb-4 flex items-center gap-2">
 					<div className="inline-flex rounded-md border border-neutral-200 p-0.5">
-						<button className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white">Hari ini</button>
-						<button className="rounded-md px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100">30 Hari</button>
+						<button 
+							onClick={() => handlePeriodChange('daily')}
+							className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+								period === 'daily' 
+									? 'bg-red-600 text-white' 
+									: 'text-neutral-700 hover:bg-neutral-100'
+							}`}
+						>
+							Hari ini
+						</button>
+						<button 
+							onClick={() => handlePeriodChange('30days')}
+							className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+								period === '30days' 
+									? 'bg-red-600 text-white' 
+									: 'text-neutral-700 hover:bg-neutral-100'
+							}`}
+						>
+							30 Hari
+						</button>
 					</div>
 					<button
-						onClick={fetchStats}
+						onClick={handleRefresh}
 						className="ml-auto rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100"
 						aria-label="Refresh"
 						title="Refresh data"
@@ -192,19 +232,19 @@ const AdminDashboard = () => {
 						title="Total Pendapatan"
 						value={formatCurrency(stats.totalIncome)}
 						delta={formatPercentage(stats.incomeChange)}
-						sub="dari kemarin"
+						sub={period === 'daily' ? 'dari kemarin' : 'dari periode sebelumnya'}
 					/>
 					<StatCard
 						title="Total Pesanan"
 						value={stats.totalOrders.toString()}
 						delta={formatPercentage(stats.orderChange)}
-						sub="dari kemarin"
+						sub={period === 'daily' ? 'dari kemarin' : 'dari periode sebelumnya'}
 					/>
 					<StatCard
 						title="Produk Terjual"
 						value={stats.totalSelling.toString()}
 						delta={formatPercentage(stats.sellingChange)}
-						sub="dari kemarin"
+						sub={period === 'daily' ? 'dari kemarin' : 'dari periode sebelumnya'}
 					/>
 				</div>
 
@@ -256,7 +296,7 @@ const AdminDashboard = () => {
 										<div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-100 overflow-hidden">
 											{item.thumbnail ? (
 												<img
-													src={`${API_BASE_URL}${item.thumbnail}`}
+												src={getImageUrl(item.thumbnail)}
 													alt={item.productName}
 													className="h-full w-full object-cover"
 												/>

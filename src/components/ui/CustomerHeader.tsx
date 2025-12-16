@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth.store'
 import ProfileOption from './ProfileOption'
 import PopupModal from './PopupModal'
+import SearchResult from './SearchResult'
 
 export interface CustomerHeaderProps {
 	className?: string
 	cartCount?: number
+	notificationCount?: number
 	onSearchChange?: (value: string) => void
 	searchValue?: string
 	onBellClick?: () => void
@@ -24,7 +26,8 @@ function cn(...parts: Array<string | false | null | undefined>) {
 
 const CustomerHeader = ({
 	className,
-	cartCount = 3,
+	cartCount = 0,
+	notificationCount = 0,
 	onSearchChange,
 	searchValue = '',
 	onBellClick,
@@ -36,7 +39,10 @@ const CustomerHeader = ({
 }: CustomerHeaderProps) => {
 	const [open, setOpen] = useState(false)
 	const [showLogoutModal, setShowLogoutModal] = useState(false)
+	const [searchQuery, setSearchQuery] = useState('')
+	const [showSearchResults, setShowSearchResults] = useState(false)
 	const menuRef = useRef<HTMLDivElement | null>(null)
+	const searchRef = useRef<HTMLDivElement | null>(null)
 	const navigate = useNavigate()
 	const { logout } = useAuthStore()
 
@@ -45,10 +51,17 @@ const CustomerHeader = ({
 			if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
 				setOpen(false)
 			}
+			if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+				setShowSearchResults(false)
+			}
 		}
 		function handleEsc(e: KeyboardEvent) {
-			if (e.key === 'Escape' && !showLogoutModal) {
-				setOpen(false)
+			if (e.key === 'Escape') {
+				if (showSearchResults) {
+					setShowSearchResults(false)
+				} else if (!showLogoutModal) {
+					setOpen(false)
+				}
 			}
 		}
 		document.addEventListener('mousedown', handleClickOutside)
@@ -57,7 +70,7 @@ const CustomerHeader = ({
 			document.removeEventListener('mousedown', handleClickOutside)
 			document.removeEventListener('keydown', handleEsc)
 		}
-	}, [showLogoutModal])
+	}, [showLogoutModal, showSearchResults])
 
 	function handleLogout() {
 		setShowLogoutModal(true)
@@ -91,6 +104,22 @@ const CustomerHeader = ({
 			navigate('/cart')
 		}
 	}
+
+	function handleSearchChange(value: string) {
+		setSearchQuery(value)
+		setShowSearchResults(value.length >= 2)
+		if (onSearchChange) {
+			onSearchChange(value)
+		}
+	}
+
+	function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+		if (e.key === 'Enter' && searchQuery.trim()) {
+			navigate(`/?search=${encodeURIComponent(searchQuery)}`)
+			setShowSearchResults(false)
+		}
+	}
+
 	const isLight = variant === 'light'
 	const isDark = variant === 'dark'
 
@@ -105,16 +134,20 @@ const CustomerHeader = ({
 		>
 			<div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 md:px-6">
 				{/* Brand */}
-				<div className="flex items-center gap-2">
+				<button
+					type="button"
+					onClick={() => navigate('/')}
+					className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+				>
 					<div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', isLight ? 'bg-black text-white' : 'bg-white text-black')}>
 						<span className="text-lg font-bold">RC</span>
 					</div>
 					<span className={cn('text-lg font-semibold', isLight ? 'text-black' : 'text-white')}>CV Rahma Cell</span>
-				</div>
+				</button>
 
 				{/* Center search */}
 				<div className="flex flex-1 justify-center">
-					<div className="w-full max-w-2xl mr-9">
+					<div className="w-full max-w-2xl mr-9" ref={searchRef}>
 						<div className="relative">
 							<span className={cn('pointer-events-none absolute left-3 top-1/2 -translate-y-1/2', isDark ? 'text-neutral-400' : 'text-neutral-400')}>
 								<svg
@@ -134,8 +167,10 @@ const CustomerHeader = ({
 								<input
 									type="text"
 									placeholder="Cari HP, aksesoris, charger dan lainnya..."
-									value={searchValue}
-									onChange={(e) => onSearchChange?.(e.target.value)}
+									value={searchQuery || searchValue}
+									onChange={(e) => handleSearchChange(e.target.value)}
+									onKeyDown={handleSearchKeyDown}
+									onFocus={() => searchQuery.length >= 2 && setShowSearchResults(true)}
 									className={cn(
 										'w-full rounded-md px-9 py-2 text-sm outline-none transition-shadow',
 										isDark
@@ -143,6 +178,14 @@ const CustomerHeader = ({
 											: 'border border-neutral-200 bg-white text-black placeholder:text-neutral-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,0.1)]',
 									)}
 								/>
+							{showSearchResults && (
+								<SearchResult
+									query={searchQuery}
+									onClose={() => setShowSearchResults(false)}
+									variant={variant}
+									onNavigate={() => setSearchQuery('')}
+								/>
+							)}
 						</div>
 					</div>
 				</div>
@@ -152,7 +195,7 @@ const CustomerHeader = ({
 					{/* Bell */}
 					<button
 						type="button"
-						onClick={onBellClick}
+						onClick={() => onBellClick ? onBellClick() : navigate('/notifications')}
 						aria-label="Notifikasi"
 						className={cn('relative', isDark ? 'text-neutral-300 hover:text-white' : 'text-neutral-700 hover:text-black')}
 					>
@@ -169,6 +212,12 @@ const CustomerHeader = ({
 							<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
 							<path d="M10 22h4" />
 						</svg>
+						{notificationCount > 0 && (
+							<span className="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-medium text-white shadow">
+								{notificationCount}
+								<span className="sr-only">notifikasi belum dibaca</span>
+							</span>
+						)}
 					</button>
 
 					{/* Cart */}

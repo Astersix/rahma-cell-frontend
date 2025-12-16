@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import PopupModal from '../../components/ui/PopupModal'
 import { useCartStore } from '../../store/cart.store'
 import { useAuthStore } from '../../store/auth.store'
 import { orderService, type PlaceOrderRequest } from '../../services/order.service'
 import { getMyProfile, type Address } from '../../services/user.service'
+import { deleteCartItem, getCartByUserId } from '../../services/cart.service'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -21,9 +23,32 @@ const ProductCheckoutPage = () => {
 	const [payment, setPayment] = useState<'qris' | 'cod'>('qris')
 	const [selectedAddress, setSelectedAddress] = useState<string>('')
 	const [placing, setPlacing] = useState(false)
-	const [showSuccess, setShowSuccess] = useState(false)
 	const [addresses, setAddresses] = useState<Address[]>([])
 	const [addrLoading, setAddrLoading] = useState(false)
+	const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+	
+	// Get buyNow info from navigation state
+	const isBuyNow = (location.state as any)?.isBuyNow
+	const buyNowVariantId = (location.state as any)?.buyNowVariantId
+
+	useEffect(() => {
+		async function loadAddresses() {
+			try {
+				if (!token) return
+				setAddrLoading(true)
+				const profile = await getMyProfile(token)
+				const list = Array.isArray(profile.address) ? profile.address : []
+				setAddresses(list)
+				const def = list.find(a => a.is_default) || list[0]
+				if (def) setSelectedAddress(String(def.id))
+			} catch {
+				// ignore display-only errors
+			} finally {
+				setAddrLoading(false)
+			}
+		}
+		loadAddresses()
+	}, [token])
 
 	async function reloadAddresses() {
 		try {
@@ -41,9 +66,25 @@ const ProductCheckoutPage = () => {
 		}
 	}
 
-	useEffect(() => {
-		reloadAddresses()
-	}, [token])
+	// Handle back button cleanup for Buy Now flow
+	async function handleBackNavigation() {
+		if (isBuyNow && buyNowVariantId && token) {
+			try {
+				const profile = await getMyProfile(token)
+				const userId = profile.id
+				const cart = await getCartByUserId(userId, token)
+				const cartItem = cart.cart_product?.find(
+					item => String(item.product_variant_id) === String(buyNowVariantId)
+				)
+				if (cartItem?.id) {
+					await deleteCartItem(userId, String(cartItem.id), token)
+				}
+			} catch (err) {
+				// Silent cleanup error
+			}
+		}
+		navigate(-1)
+	}
 
 	const stateSelected = (location.state as any)?.selectedKeys as string[] | undefined
 	const stateSelectedItems = (location.state as any)?.selectedItems as Array<{
@@ -112,8 +153,8 @@ const ProductCheckoutPage = () => {
 			if (payment === 'qris' && orderId) {
 				navigate(`/payment/${orderId}`)
 			} else {
-				// Otherwise: show success popup for non-QRIS (e.g., COD)
-				setShowSuccess(true)
+				// For COD: show success popup
+				setShowSuccessPopup(true)
 			}
 		} catch (e: any) {
 			alert(e?.message || 'Gagal membuat pesanan')
@@ -128,7 +169,7 @@ const ProductCheckoutPage = () => {
 				<div className="mb-5 flex items-center gap-2">
 					<button
 						type="button"
-						onClick={() => navigate(-1)}
+						onClick={handleBackNavigation}
 						className="text-neutral-600 hover:text-neutral-800"
 						aria-label="Kembali"
 					>
@@ -276,6 +317,23 @@ const ProductCheckoutPage = () => {
 						</Card>
 					</div>
 				</div>
+
+			<PopupModal
+				open={showSuccessPopup}
+				onClose={() => setShowSuccessPopup(false)}
+				icon="success"
+				title="Pembayaran berhasil"
+				description="Silakan cek pesanan Anda untuk melihat status pengiriman"
+				primaryButton={{
+					label: 'Lihat Pesanan',
+					variant: 'outlined',
+					onClick: () => {
+						setShowSuccessPopup(false)
+						navigate('/orders')
+					}
+				}}
+				showCloseButton={true}
+			/>
 			</div>
 		</CustomerLayout>
 	)
