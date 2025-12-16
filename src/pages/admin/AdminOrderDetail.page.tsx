@@ -16,6 +16,7 @@ const AdminOrderDetailPage = () => {
 	const [order, setOrder] = useState<any | null>(null)
 	const [selectedStatus, setSelectedStatus] = useState<string>('')
 	const [updating, setUpdating] = useState(false)
+	const [error, setError] = useState<string>('')
 
 	const items = useMemo(() => Array.isArray(order?.order_product) ? order.order_product : [], [order])
 
@@ -43,6 +44,7 @@ const AdminOrderDetailPage = () => {
 
 	async function handleUpdateStatus() {
 		if (!orderId || !selectedStatus) return
+		setError('')
 		try {
 			setUpdating(true)
 			await orderService.updateOrderStatus(String(orderId), { status: selectedStatus })
@@ -53,7 +55,9 @@ const AdminOrderDetailPage = () => {
 			setSelectedStatus(data?.status || '')
 			navigate('/admin/orders', { state: { refreshAfter: 'status-update' } })
 		} catch (e: any) {
-			// Silent error
+			console.error('Failed to update order status:', e)
+			const errMsg = e?.response?.data?.message || e?.message || 'Gagal memperbarui status pesanan'
+			setError(errMsg)
 		} finally {
 			setUpdating(false)
 		}
@@ -61,11 +65,12 @@ const AdminOrderDetailPage = () => {
 
 	const statusTone = (st?: string) => {
 		const v = (st || '').toLowerCase()
+		if (v === 'menunggu_konfirmasi') return { label: 'Menunggu Konfirmasi', cls: 'bg-amber-100 text-amber-700' }
 		if (v === 'menunggu_pembayaran') return { label: 'Menunggu Pembayaran', cls: 'bg-orange-100 text-orange-700' }
 		if (v === 'diproses') return { label: 'Diproses', cls: 'bg-orange-100 text-orange-700' }
 		if (v === 'dikirim') return { label: 'Dikirim', cls: 'bg-blue-100 text-blue-700' }
 		if (v === 'selesai') return { label: 'Selesai', cls: 'bg-emerald-100 text-emerald-700' }
-		if (v === 'dibatalkan') return { label: 'Dibatalkan', cls: 'bg-amber-100 text-amber-700' }
+		if (v === 'batal') return { label: 'Dibatalkan', cls: 'bg-red-100 text-red-700' }
 		return { label: st || '-', cls: 'bg-neutral-100 text-neutral-700' }
 	}
 
@@ -174,12 +179,18 @@ const AdminOrderDetailPage = () => {
 									onChange={(e) => setSelectedStatus(e.target.value)}
 									disabled={updating}
 								>
+									<option value="menunggu_konfirmasi">Menunggu Konfirmasi</option>
 									<option value="menunggu_pembayaran">Menunggu Pembayaran</option>
 									<option value="diproses">Diproses</option>
 									<option value="dikirim">Dikirim</option>
 									<option value="selesai">Selesai</option>
-									<option value="dibatalkan">Dibatalkan</option>
+									<option value="batal">Dibatalkan</option>
 								</select>
+								{error && (
+									<div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+										{error}
+									</div>
+								)}
 								<Button 
 									fullWidth 
 									className="bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50" 

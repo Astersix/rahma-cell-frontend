@@ -48,7 +48,7 @@ const ProductDetailPage = () => {
 												if (p?.category_id) {
 													try {
 														const cres = await getCategoryById(String(p.category_id))
-														setCategoryName(cres?.data?.name || '')
+													setCategoryName((cres as any)?.name || cres?.data?.name || '')
 													} catch {
 														setCategoryName('')
 													}
@@ -215,10 +215,10 @@ const ProductDetailPage = () => {
 				<nav className="mb-4 text-xs text-neutral-500">
 					<button
 						type="button"
-						onClick={() => navigate('/')}
+						onClick={() => navigate('/admin/products')}
 						className="text-neutral-600 hover:underline"
 					>
-						Beranda
+						← Beranda
 					</button>
 					<span className="mx-2">/</span>
 					<span className="text-neutral-800">{product?.name ?? 'Memuat...'}</span>

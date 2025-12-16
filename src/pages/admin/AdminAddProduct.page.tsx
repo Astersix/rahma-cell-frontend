@@ -8,6 +8,7 @@ import { uploadTempImages, finalizeImages, deleteTempImage } from '../../service
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
 import { useNavigate } from 'react-router-dom'
+import { API_BASE_URL } from '../../services/api.service'
 
 const AdminAddProductPage = () => {
   const [name, setName] = useState('')
@@ -22,6 +23,7 @@ const AdminAddProductPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [productThumbnail, setProductThumbnail] = useState<{ variantIdx: number; imageIdx: number }>({ variantIdx: 0, imageIdx: 0 })
   const navigate = useNavigate()
   const { token } = useAuthStore()
 
@@ -40,9 +42,9 @@ const AdminAddProductPage = () => {
   function normalizeVariants(finalizedUrls: Map<string, string>) {
     return variants
       .filter(v => v.variant_name.trim() && v.price !== '' && v.stock !== '')
-      .map(v => {
+      .map((v, vIdx) => {
         const imgs = v.images.filter(img => img.previewUrl.trim())
-        const primary = imgs.find(i => i.is_thumbnail) || imgs[0]
+        const primary = imgs[0]
         
         const result: any = {
           variant_name: v.variant_name.trim(),
@@ -52,11 +54,18 @@ const AdminAddProductPage = () => {
         
         if (primary) {
           // If it has tempName, use finalized URL, otherwise use previewUrl directly
-          const imageUrl = primary.tempName ? finalizedUrls.get(primary.tempName) : primary.previewUrl
+          let imageUrl = primary.tempName ? finalizedUrls.get(primary.tempName) : primary.previewUrl
           if (imageUrl && imageUrl.trim()) {
+            // Convert relative path to full URL for backend validation
+            if (imageUrl.startsWith('/')) {
+              const baseUrl = API_BASE_URL.replace('/api', '')
+              imageUrl = `${baseUrl}${imageUrl}`
+            }
+            // Mark as thumbnail only if this is the selected product thumbnail
+            const isThumbnail = productThumbnail?.variantIdx === vIdx && productThumbnail?.imageIdx === 0
             result.image = {
               image_url: imageUrl.trim(),
-              is_thumbnail: true
+              is_thumbnail: isThumbnail
             }
           }
         }
@@ -157,6 +166,8 @@ const AdminAddProductPage = () => {
         }
         return nv
       })
+      // Automatically set this image as the product thumbnail
+      setProductThumbnail({ variantIdx: vi, imageIdx: 0 })
     } catch (e: any) {
       setError(e?.message || 'Gagal mengunggah gambar')
     } finally {
@@ -189,7 +200,7 @@ const AdminAddProductPage = () => {
       <div className="mx-auto max-w-4xl">
         <div className="flex gap-1 items-center mb-2">
           <button className="inline-flex items-center justify-center h-8 hover:text-neutral-600 text-2xl font-semibold text-black"
-            onClick={() => navigate(-1)}>
+            onClick={() => navigate('/admin/products')}>
             &larr; Tambah Produk
           </button>
         </div>
@@ -226,7 +237,7 @@ const AdminAddProductPage = () => {
             {/* Gambar Produk per Varian (Upload/local) */}
             <div>
               <div className="mb-2 text-sm font-semibold text-black">Gambar Produk</div>
-              <p className="mb-3 text-xs text-neutral-600">Unggah 1–6 gambar produk. Tandai salah satu sebagai thumbnail utama.</p>
+              <p className="mb-3 text-xs text-neutral-600">Unggah gambar produk sesuai dengan varian yang tersedia.</p>
               {variants.map((v, vi) => (
                 <div key={vi} className="mb-4 rounded-md border border-neutral-200 p-3">
                   <div className="mb-2 text-xs font-medium text-neutral-700">Varian #{vi + 1} - Gambar</div>
@@ -254,8 +265,13 @@ const AdminAddProductPage = () => {
                           <div className="text-sm text-neutral-800 truncate max-w-[320px]">{fileNameFromUrl(v.images[0].previewUrl)}</div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <label className="flex items-center gap-1 text-xs text-neutral-700">
-                            <input type="radio" name={`thumb-${vi}`} checked readOnly />
+                          <label className="flex items-center gap-1 text-xs text-neutral-700 cursor-pointer">
+                            <input 
+                              type="radio" 
+                              name="product-thumbnail" 
+                              checked={productThumbnail?.variantIdx === vi && productThumbnail?.imageIdx === 0}
+                              onChange={() => setProductThumbnail({ variantIdx: vi, imageIdx: 0 })}
+                            />
                             Thumbnail Utama
                           </label>
                           <button type="button" onClick={() => removeImage(vi)} aria-label="Hapus" className="text-neutral-500 hover:text-red-600">🗑️</button>
