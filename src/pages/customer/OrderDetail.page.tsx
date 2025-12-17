@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
+import PopupModal from '../../components/ui/PopupModal'
 import { orderService } from '../../services/order.service'
 
 function formatIDR(n?: number) {
@@ -17,6 +18,8 @@ const OrderDetailPage = () => {
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [cancelling, setCancelling] = useState(false)
+	const [showCancelModal, setShowCancelModal] = useState(false)
+	const [showSuccessModal, setShowSuccessModal] = useState(false)
 
 	useEffect(() => {
 		if (!orderId) return
@@ -41,16 +44,15 @@ const OrderDetailPage = () => {
 	}, [orderId])
 
 	async function handleCancel() {
-		if (!orderId) return
-		const confirm = window.confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')
-		if (!confirm) return
+		if (!orderId || cancelling) return
 		try {
 			setCancelling(true)
 			await orderService.cancelOrder(orderId)
-			alert('Pesanan berhasil dibatalkan')
-			navigate('/orders')
+			setShowCancelModal(false)
+			setShowSuccessModal(true)
 		} catch (err: any) {
-			alert(err?.message || 'Gagal membatalkan pesanan')
+			setError(err?.message || 'Gagal membatalkan pesanan')
+			setShowCancelModal(false)
 		} finally {
 			setCancelling(false)
 		}
@@ -243,16 +245,53 @@ const OrderDetailPage = () => {
 									fullWidth
 									variant="light"
 									className="border-red-500 text-red-600 hover:bg-red-50 active:bg-red-100"
-									onClick={handleCancel}
-									disabled={cancelling}
-								>
-									{cancelling ? 'Membatalkan...' : 'Batalkan Pesanan'}
+								onClick={() => setShowCancelModal(true)}
+								disabled={cancelling}
+							>
+								Batalkan Pesanan
 								</Button>
 							</div>
 						)}
 					</div>
 				)}
 			</div>
+
+			<PopupModal
+				open={showCancelModal}
+				onClose={() => setShowCancelModal(false)}
+				icon="warning"
+				title="Batalkan Pesanan?"
+				description="Apakah Anda yakin ingin membatalkan pesanan ini? Tindakan ini tidak dapat dibatalkan."
+				primaryButton={{
+					label: 'Tidak, Kembali',
+					variant: 'filled',
+					onClick: () => setShowCancelModal(false),
+				}}
+				secondaryButton={{
+					label: cancelling ? 'Membatalkan...' : 'Ya, Batalkan',
+					variant: 'outlined',
+					onClick: handleCancel,
+				}}
+			/>
+
+			<PopupModal
+				open={showSuccessModal}
+				onClose={() => {
+					setShowSuccessModal(false)
+					navigate('/orders')
+				}}
+				icon="success"
+				title="Pesanan Berhasil Dibatalkan"
+				description="Pesanan Anda berhasil dibatalkan"
+				primaryButton={{
+					label: 'Kembali ke Pesanan',
+					variant: 'filled',
+					onClick: () => {
+						setShowSuccessModal(false)
+						navigate('/orders')
+					},
+				}}
+			/>
 		</CustomerLayout>
 	)
 }

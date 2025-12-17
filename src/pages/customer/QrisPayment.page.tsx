@@ -25,9 +25,28 @@ const QrisPaymentPage = () => {
   const [statusLabel, setStatusLabel] = useState<string>('Menunggu Pembayaran')
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showFailureModal, setShowFailureModal] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [canceling, setCanceling] = useState(false)
 
   const items = useMemo(() => (Array.isArray(order?.order_product) ? order.order_product : []), [order])
   const subtotal = useMemo(() => items.reduce((s: number, it: any) => s + (Number(it?.price) || 0) * (Number(it?.quantity) || 0), 0), [items])
+
+  async function handleCancelOrder() {
+    if (!orderId || canceling) return
+    try {
+      setCanceling(true)
+      await orderService.cancelOrder(orderId)
+      // Clean up localStorage when order is canceled
+      localStorage.removeItem(`payment-expiry-${orderId}`)
+      setShowCancelModal(false)
+      navigate('/orders')
+    } catch (e: any) {
+      setError(e?.message || 'Gagal membatalkan pesanan')
+      setShowCancelModal(false)
+    } finally {
+      setCanceling(false)
+    }
+  }
 
   useEffect(() => {
     let mounted = true
@@ -185,7 +204,14 @@ const QrisPaymentPage = () => {
                   <div className="text-center text-xs text-neutral-600">Pindai kode QR di atas menggunakan m-banking atau e-wallet Anda. Status pesanan akan berubah menjadi "Diproses" secara otomatis setelah pembayaran terkonfirmasi.</div>
                 </div>
                 <div className="mt-4">
-                  <Button fullWidth className="bg-red-600 hover:bg-red-700 active:bg-red-800">Batalkan Pesanan</Button>
+                  <Button 
+                    fullWidth 
+                    className="bg-red-600 hover:bg-red-700 active:bg-red-800"
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={canceling || statusLabel === 'Pembayaran Berhasil'}
+                  >
+                    Batalkan Pesanan
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -267,6 +293,24 @@ const QrisPaymentPage = () => {
             setShowFailureModal(false)
             navigate('/orders')
           },
+        }}
+      />
+
+      <PopupModal
+        open={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        icon="warning"
+        title="Batalkan Pesanan?"
+        description="Apakah Anda yakin ingin membatalkan pesanan ini? Tindakan ini tidak dapat dibatalkan."
+        primaryButton={{
+          label: 'Tidak, Kembali',
+          variant: 'filled',
+          onClick: () => setShowCancelModal(false),
+        }}
+        secondaryButton={{
+          label: 'Ya, Batalkan',
+          variant: 'outlined',
+          onClick: handleCancelOrder,
         }}
       />
     </CustomerLayout>

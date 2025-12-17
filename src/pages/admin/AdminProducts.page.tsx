@@ -22,6 +22,8 @@ const ProductsPage = () => {
   const [categoriesMap, setCategoriesMap] = useState<Record<string, string>>({})
   const [importSummary, setImportSummary] = useState<ImportProductsSummary | null>(null)
   const [page, setPage] = useState(1)
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const PAGE_SIZE = 5
 
   async function loadProducts(initial = false) {
@@ -126,15 +128,33 @@ const ProductsPage = () => {
     loadProducts(true)
   }, [location?.state])
   const filtered = useMemo(() => {
+    let result = items
+    
+    // Filter by category
+    if (categoryFilter !== 'all') {
+      result = result.filter(p => String(p.category_id) === categoryFilter)
+    }
+    
+    // Filter by status (stock availability)
+    if (statusFilter === 'tersedia') {
+      result = result.filter(p => (p.totalStock || 0) > 0)
+    } else if (statusFilter === 'habis') {
+      result = result.filter(p => (p.totalStock || 0) === 0)
+    }
+    
+    // Filter by search query
     const q = query.trim().toLowerCase()
-    if (!q) return items
-    return items.filter(p => p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q))
-  }, [items, query])
+    if (q) {
+      result = result.filter(p => p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q))
+    }
+    
+    return result
+  }, [items, query, categoryFilter, statusFilter])
 
   // Reset to first page when filter changes
   useEffect(() => {
     setPage(1)
-  }, [query])
+  }, [query, categoryFilter, statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = useMemo(() => {
@@ -197,8 +217,15 @@ const ProductsPage = () => {
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
           <div className="flex gap-4">
             <div className="relative w-48">
-              <select className="w-full appearance-none rounded-md border border-neutral-200 bg-white px-3 py-2 pr-8 text-sm text-black outline-none focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
-                <option>Semua Kategori</option>
+              <select 
+                className="w-full appearance-none rounded-md border border-neutral-200 bg-white px-3 py-2 pr-8 text-sm text-black outline-none focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">Semua Kategori</option>
+                {Object.entries(categoriesMap).map(([id, name]) => (
+                  <option key={id} value={id}>{name}</option>
+                ))}
               </select>
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -207,8 +234,14 @@ const ProductsPage = () => {
               </span>
             </div>
             <div className="relative w-48">
-              <select className="w-full appearance-none rounded-md border border-neutral-200 bg-white px-3 py-2 pr-8 text-sm text-black outline-none focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]">
-                <option>Semua Status</option>
+              <select 
+                className="w-full appearance-none rounded-md border border-neutral-200 bg-white px-3 py-2 pr-8 text-sm text-black outline-none focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)]"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">Semua Status</option>
+                <option value="tersedia">Tersedia</option>
+                <option value="habis">Stok Habis</option>
               </select>
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -269,31 +302,35 @@ const ProductsPage = () => {
                 icon="arrow-left"
                 size="sm"
                 variant="light"
-                className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100"
+                className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
               />
-              {Array.from({ length: totalPages }).map((_, idx) => {
-                const pnum = idx + 1
-                const active = pnum === page
-                return (
-                  <button
-                    key={pnum}
-                    onClick={() => setPage(pnum)}
-                    className={active
-                      ? 'h-8 w-8 rounded-md bg-black text-white'
-                      : 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
-                  >
-                    {pnum}
-                  </button>
-                )
-              })}
+              {[page - 1, page, page + 1]
+                .filter(pnum => pnum >= 1 && pnum <= totalPages)
+                .map((pnum) => {
+                  const active = pnum === page
+                  return (
+                    <button
+                      key={pnum}
+                      onClick={() => setPage(pnum)}
+                      className={active
+                        ? 'h-8 w-8 rounded-md bg-black text-white'
+                        : 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
+                      disabled={loading}
+                    >
+                      {pnum}
+                    </button>
+                  )
+                })}
               <ButtonIcon
                 aria-label="Next"
                 icon="arrow-right"
                 size="sm"
                 variant="light"
-                className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100"
+                className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || loading}
               />
             </div>
           </div>

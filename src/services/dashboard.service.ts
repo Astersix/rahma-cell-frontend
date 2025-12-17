@@ -26,7 +26,7 @@ export const dashboardService = {
   // DAILY ENDPOINTS
   async getSummaryIncome(): Promise<number> {
     const response = await api.get('/dashboard/summary-income-daily');
-    return Number(response.data) || 0;
+    return Number(response.data?.totalIncome) || 0;
   },
 
   async getIncomePercentageChange(): Promise<number> {
@@ -36,7 +36,7 @@ export const dashboardService = {
 
   async getTotalOrders(): Promise<number> {
     const response = await api.get('/dashboard/total-orders-daily');
-    return Number(response.data) || 0;
+    return Number(response.data?.totalOrder) || 0;
   },
 
   async getOrderPercentageChange(): Promise<number> {
@@ -46,7 +46,7 @@ export const dashboardService = {
 
   async getTotalSelling(): Promise<number> {
     const response = await api.get('/dashboard/total-selling-daily');
-    return Number(response.data) || 0;
+    return Number(response.data?.totalSelling) || 0;
   },
 
   async getSellingPercentageChange(): Promise<number> {
@@ -57,7 +57,7 @@ export const dashboardService = {
   // 30 DAYS ENDPOINTS
   async getSummaryIncome30Days(): Promise<number> {
     const response = await api.get('/dashboard/summary-income-30days');
-    return Number(response.data) || 0;
+    return Number(response.data?.totalIncome) || 0;
   },
 
   async getIncomePercentageChange30Days(): Promise<number> {
@@ -67,7 +67,7 @@ export const dashboardService = {
 
   async getTotalOrders30Days(): Promise<number> {
     const response = await api.get('/dashboard/total-orders-30days');
-    return Number(response.data) || 0;
+    return Number(response.data?.totalOrder) || 0;
   },
 
   async getOrderPercentageChange30Days(): Promise<number> {
@@ -77,7 +77,7 @@ export const dashboardService = {
 
   async getTotalSelling30Days(): Promise<number> {
     const response = await api.get('/dashboard/total-selling-30days');
-    return Number(response.data) || 0;
+    return Number(response.data?.totalSelling) || 0;
   },
 
   async getSellingPercentageChange30Days(): Promise<number> {
