@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
+import PopupModal from '../../components/ui/PopupModal'
 import { orderService } from '../../services/order.service'
 import { useAuthStore } from '../../store/auth.store'
 
@@ -30,24 +32,43 @@ function formatIDR(n?: number) {
 	return 'Rp' + n.toLocaleString('id-ID')
 }
 
-const Sidebar = () => (
+const Sidebar = ({ active, onNavigate, onLogoutClick }: { active: 'akun' | 'pesanan'; onNavigate: (page: string) => void; onLogoutClick: () => void }) => (
 	<aside className="rounded-lg border border-neutral-200 p-3 text-sm">
 		<nav className="space-y-2">
-			<button className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-neutral-700 hover:bg-neutral-50">
+			<button
+				onClick={() => onNavigate('/profile')}
+				className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left ${
+					active === 'akun' ? 'bg-red-600 text-white' : 'text-neutral-700 hover:bg-neutral-50'
+				}`}
+			>
 				<span className="inline-flex items-center gap-2">
-					<span className="inline-flex h-5 w-5 items-center justify-center text-current"><IconUser /></span>
-					Akun saya
+					<span className="inline-flex h-5 w-5 items-center justify-center text-current">
+						<IconUser />
+					</span>
+					Akun Saya
 				</span>
 			</button>
-			<button className="flex w-full items-center justify-between rounded-md bg-red-600 px-3 py-2 text-left text-white">
+			<button
+				onClick={() => onNavigate('/orders')}
+				className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left ${
+					active === 'pesanan' ? 'bg-red-600 text-white' : 'text-neutral-700 hover:bg-neutral-50'
+				}`}
+			>
 				<span className="inline-flex items-center gap-2">
-					<span className="inline-flex h-5 w-5 items-center justify-center text-current"><IconLock /></span>
+					<span className="inline-flex h-5 w-5 items-center justify-center text-current">
+						<IconLock />
+					</span>
 					Pesanan
 				</span>
 			</button>
-			<button className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-neutral-700 hover:bg-neutral-50">
+			<button
+				onClick={onLogoutClick}
+				className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-neutral-700 hover:bg-neutral-50"
+			>
 				<span className="inline-flex items-center gap-2">
-					<span className="inline-flex h-5 w-5 items-center justify-center text-current"><IconLogout /></span>
+					<span className="inline-flex h-5 w-5 items-center justify-center text-current">
+						<IconLogout />
+					</span>
 					Keluar
 				</span>
 			</button>
@@ -86,6 +107,7 @@ const Tabs = ({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => v
 }
 
 const OrderCard = ({
+	orderId,
 	statusTitle,
 	statusNote,
 	statusTone,
@@ -94,7 +116,9 @@ const OrderCard = ({
 	qty,
 	total,
 	ctaLabel,
+	onNavigate,
 }: {
+	orderId: string
 	statusTitle: string
 	statusNote?: string
 	statusTone: 'red' | 'amber' | 'green'
@@ -103,12 +127,13 @@ const OrderCard = ({
 	qty: number
 	total: number
 	ctaLabel?: string
+	onNavigate: () => void
 }) => {
 	const toneBorder = 'border-neutral-200'
 	const toneText = statusTone === 'red' ? 'text-red-600' : statusTone === 'amber' ? 'text-amber-600' : 'text-emerald-600'
 
 	return (
-		<div className={`rounded-lg border ${toneBorder} bg-white p-4`}> 
+		<div className={`rounded-lg border ${toneBorder} bg-white p-4 cursor-pointer hover:shadow-md transition-shadow`} onClick={onNavigate}> 
 			<div className="mb-3 flex items-center justify-between text-xs">
 				<div className={`font-medium ${toneText}`}>{statusTitle}</div>
 				{statusNote && <div className="text-neutral-500">{statusNote}</div>}
@@ -160,11 +185,27 @@ const statusTone = (k: TabKey): 'red' | 'amber' | 'green' => {
 }
 
 const OrderHistoryPage = () => {
+	const navigate = useNavigate()
 	const token = useAuthStore(s => s.token)
 	const [orders, setOrders] = useState<any[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [tab, setTab] = useState<TabKey>('semua')
+	const [showLogoutModal, setShowLogoutModal] = useState(false)
+
+	function handleLogoutClick() {
+		setShowLogoutModal(true)
+	}
+
+	function handleConfirmLogout() {
+		setShowLogoutModal(false)
+		useAuthStore.getState().logout()
+		navigate('/login')
+	}
+
+	function handleCancelLogout() {
+		setShowLogoutModal(false)
+	}
 
 	useEffect(() => {
 		async function load() {
@@ -193,7 +234,7 @@ const OrderHistoryPage = () => {
 			<div className="mx-auto max-w-7xl">
 				<div className="grid gap-6 md:grid-cols-[200px_1fr]">
 					{/* Sidebar */}
-					<Sidebar />
+					<Sidebar active="pesanan" onNavigate={navigate} onLogoutClick={handleLogoutClick} />
 
 					{/* Main content */}
 					<div>
@@ -227,6 +268,7 @@ const OrderHistoryPage = () => {
 										return (
 											<OrderCard
 												key={o.id}
+												orderId={o.id}
 												statusTitle={titleMap[k]}
 												statusNote={note}
 												statusTone={tone}
@@ -235,6 +277,7 @@ const OrderHistoryPage = () => {
 												qty={qty}
 												total={Number(o?.total) || 0}
 												ctaLabel={cta}
+												onNavigate={() => navigate(`/orders/${o.id}`)}
 											/>
 										)
 									})
@@ -244,6 +287,24 @@ const OrderHistoryPage = () => {
 					</div>
 				</div>
 			</div>
+
+			<PopupModal
+				open={showLogoutModal}
+				onClose={handleCancelLogout}
+				icon="warning"
+				title="Apakah Anda yakin ingin keluar?"
+				description="Tindakan ini tidak dapat dibatalkan"
+				primaryButton={{
+					label: 'Kembali',
+					variant: 'filled',
+					onClick: handleCancelLogout,
+				}}
+				secondaryButton={{
+					label: 'Keluar',
+					variant: 'outlined',
+					onClick: handleConfirmLogout,
+				}}
+			/>
 		</CustomerLayout>
 	)
 }

@@ -32,20 +32,34 @@ const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 					</div>
 					<span className={cn('text-lg font-semibold text-black')}>CV Rahma Cell</span>
 				</div>
-				{/* Logout icon */}
-				<button
-					type="button"
-					aria-label="Logout"
-					onClick={handleLogout}
-					className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100"
-				>
-					{/* logout icon */}
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-						<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-						<polyline points="16 17 21 12 16 7" />
-						<line x1="21" y1="12" x2="9" y2="12" />
-					</svg>
-				</button>
+				{/* Notification and Logout icons */}
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						aria-label="Notifications"
+						onClick={() => navigate('/admin/notifications')}
+						className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100"
+					>
+						{/* notification bell icon */}
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+							<path d="M10 22h4" />
+						</svg>
+					</button>
+					<button
+						type="button"
+						aria-label="Logout"
+						onClick={handleLogout}
+						className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100"
+					>
+						{/* logout icon */}
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+							<polyline points="16 17 21 12 16 7" />
+							<line x1="21" y1="12" x2="9" y2="12" />
+						</svg>
+					</button>
+				</div>
 			</div>
 		</header>
 	)

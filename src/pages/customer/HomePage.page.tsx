@@ -6,11 +6,13 @@ import { useState, useMemo, useEffect } from 'react'
 import { getAllProduct, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
 import { getAllCategories } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 const PAGE_SIZE = 20
 
 const HomePage = () => {
+	const [searchParams] = useSearchParams()
+	const searchQuery = searchParams.get('search') || ''
 	const [category, setCategory] = useState<string>('all')
 	const [products, setProducts] = useState<Product[]>([])
 	const [categories, setCategories] = useState<CategoryItem[]>([{ key: 'all', label: 'Semua Produk', icon: 'all' }])
@@ -21,7 +23,6 @@ const HomePage = () => {
 	const [page, setPage] = useState<number>(1)
 	const [hasNext, setHasNext] = useState<boolean>(false)
 	const [totalPages, setTotalPages] = useState<number>(1)
-	const [totalCount, setTotalCount] = useState<number | null>(null)
 	const { isAuthenticated, token } = useAuthStore()
 
 	useEffect(() => {
@@ -29,7 +30,11 @@ const HomePage = () => {
 			setLoadingProducts(true)
 			setErrorProducts(null)
 			try {
-				const res: any = await getAllProduct({ page, limit: PAGE_SIZE }, token || undefined)
+				const params: Record<string, unknown> = { page, limit: PAGE_SIZE }
+				if (category !== 'all') {
+					params.category_id = category
+				}
+				const res: any = await getAllProduct(params, token || undefined)
 				const list = (res.data || []).map((p: any) => ({
 					...p,
 					id: String(p.id ?? p.product_id ?? p.productId ?? p.ulid ?? p.uid ?? ''),
@@ -43,12 +48,11 @@ const HomePage = () => {
 					const last = Number(meta.lastPage || meta.last || current)
 					setHasNext(current < last)
 					setTotalPages(Math.max(1, last))
-					if (typeof meta.total !== 'undefined') setTotalCount(Number(meta.total))
+
 				} else {
 					// Fallback when meta is not provided
 					setHasNext((list?.length ?? 0) === PAGE_SIZE)
 					setTotalPages(page + ((list?.length ?? 0) === PAGE_SIZE ? 1 : 0))
-					setTotalCount(null)
 				}
 
 				const withThumb = await Promise.all(list.map(async (p: any) => {
@@ -76,7 +80,7 @@ const HomePage = () => {
 			}
 		}
 		fetchProducts()
-	}, [page, token])
+	}, [page, category, token])
 
 	useEffect(() => {
 		async function fetchCategories() {
@@ -100,9 +104,19 @@ const HomePage = () => {
 	}, [isAuthenticated, token])
 
 	const filtered = useMemo(() => {
-		if (category === 'all') return products
-		return products.filter(p => p.category_id === category)
-	}, [category, products])
+		let result = products
+		
+		// Filter by search query (category filtering now handled by API)
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase()
+			result = result.filter(p => 
+				p.name.toLowerCase().includes(query) ||
+				p.description?.toLowerCase().includes(query)
+			)
+		}
+		
+		return result
+	}, [products, searchQuery])
 
 		return (
 		<CustomerLayout>
@@ -112,17 +126,25 @@ const HomePage = () => {
 						<ProductCategory
 							categories={categories}
 							value={category}
-							onChange={setCategory}
+							onChange={(cat) => {
+								setCategory(cat)
+								setPage(1)
+							}}
 						/>
 						{loadingCategories && <p className="mt-2 text-xs text-neutral-500">Memuat kategori...</p>}
 						{errorCategories && <p className="mt-2 text-xs text-red-600">{errorCategories}</p>}
 					</div>
 					<div className="space-y-6">
 						<div>
-							<h2 className="text-xl font-semibold">Produk Terbaru</h2>
-							<p className="mt-1 text-sm text-neutral-600">Temukan gadget impian Anda dengan harga terbaik</p>
+							<h2 className="text-xl font-semibold">
+								{searchQuery ? `Hasil Pencarian "${searchQuery}"` : 'Produk Terbaru'}
+							</h2>
+							<p className="mt-1 text-sm text-neutral-600">
+								{searchQuery 
+									? `Menampilkan ${filtered.length} produk yang ditemukan` 
+									: 'Temukan gadget impian Anda dengan harga terbaik'}
+							</p>
 						</div>
-						{loadingProducts && <p className="text-sm text-neutral-500">Memuat produk...</p>}
 						{errorProducts && <p className="text-sm text-red-600">{errorProducts}</p>}
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
 							{filtered.map((product: any) => {
@@ -167,22 +189,23 @@ const HomePage = () => {
 								onClick={() => setPage(p => Math.max(1, p - 1))}
 								disabled={page === 1 || loadingProducts}
 							/>
-							{Array.from({ length: Math.max(1, totalPages) }).map((_, idx) => {
-								const pnum = idx + 1
-								const active = pnum === page
-								return (
-									<button
-										key={pnum}
-										onClick={() => setPage(pnum)}
-										className={active
-											? 'h-8 w-8 rounded-md bg-black text-white'
-											: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
-										disabled={loadingProducts}
-									>
-										{pnum}
-									</button>
-								)
-							})}
+								{[page - 1, page, page + 1]
+									.filter(pnum => pnum >= 1 && pnum <= totalPages)
+									.map((pnum) => {
+										const active = pnum === page
+										return (
+											<button
+												key={pnum}
+												onClick={() => setPage(pnum)}
+												className={active
+													? 'h-8 w-8 rounded-md bg-black text-white'
+													: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
+												disabled={loadingProducts}
+											>
+												{pnum}
+											</button>
+										)
+									})}
 							<ButtonIcon
 								aria-label="Next"
 								icon="arrow-right"
@@ -190,7 +213,7 @@ const HomePage = () => {
 								variant="light"
 								className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
 								onClick={() => setPage(p => p + 1)}
-								disabled={!hasNext || loadingProducts}
+									disabled={!hasNext || loadingProducts}
 							/>
 							</div>
 						</div>

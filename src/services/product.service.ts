@@ -261,3 +261,115 @@ export async function importProducts(file: File, _token?: string): Promise<ApiRe
 		throw normalizeAxiosError(err)
 	}
 }
+
+// LOW STOCK: Get products with variants having stock below threshold
+export interface LowStockItem {
+	productId: string
+	productName: string
+	variantId: string
+	variantName: string
+	stock: number
+	thumbnail?: string
+}
+
+export async function getLowStockProducts(threshold: number = 5, _token?: string): Promise<ApiResponse<LowStockItem[]>> {
+	try {
+		// Simplified approach: fetch all products with basic variant data first
+		const allProducts: Product[] = []
+		let currentPage = 1
+		const limit = 10 // Backend default is 10 per page
+		
+		// Paginate through all products
+		while (true) {
+			const res = await api.get<any>('/product', { params: { page: currentPage, limit } })
+			const raw = res.data
+			const products: Product[] = extractArray<Product>(raw)
+			
+			if (!products || products.length === 0) break
+			
+			allProducts.push(...products)
+			
+			// Check if there are more pages - backend uses 'hasNext' in meta
+			const meta = raw?.meta || raw?.pagination || raw?.data?.meta
+			
+			// If we got fewer products than the limit, we're on the last page
+			if (products.length < limit) break
+			
+			// Also check meta if available
+			if (meta && (meta.hasNext === false || meta.has_next === false)) break
+			
+			currentPage++
+			if (currentPage > 100) break // Safety limit
+		}
+		
+		// Now process each product to find low stock variants
+		const lowStockPromises = allProducts.map(async (product) => {
+			try {
+				// Fetch full product details with images
+				const detailRes = await api.get<any>(`/product/${encodeURIComponent(product.id)}`)
+				const detailRaw = detailRes.data
+				const detailedProduct = detailRaw?.data ?? detailRaw?.product ?? detailRaw
+				
+				const variants = detailedProduct?.product_variant || []
+				const items: LowStockItem[] = []
+				
+				if (Array.isArray(variants)) {
+					for (const variant of variants) {
+						const stock = Number(variant.stock)
+						
+						// Check if stock is low (including 0 stock items)
+						if (!isNaN(stock) && stock <= threshold) {
+							let thumbnail: string | undefined
+							if (Array.isArray(variant.product_image) && variant.product_image.length > 0) {
+								const thumbImg = variant.product_image.find((img: ProductImage) => img.is_thumbnail) || variant.product_image[0]
+								thumbnail = thumbImg?.image_url
+							}
+							
+							items.push({
+								productId: product.id,
+								productName: product.name || detailedProduct?.name || 'Unknown Product',
+								variantId: variant.id,
+								variantName: variant.variant_name || 'Default',
+								stock: stock,
+								thumbnail: thumbnail,
+							})
+						}
+					}
+				}
+				
+				return items
+			} catch (err) {
+				return []
+			}
+		})
+		
+		// Wait for all product details to be fetched
+		const allLowStockArrays = await Promise.all(lowStockPromises)
+		const lowStockItems = allLowStockArrays.flat()
+		
+		// Sort by stock ascending (lowest first)
+		lowStockItems.sort((a, b) => a.stock - b.stock)
+		
+		return { data: lowStockItems, message: 'Low stock items retrieved' }
+	} catch (err) {
+		throw normalizeAxiosError(err)
+	}
+}
+
+// PREDICTION: Get stock prediction for a variant
+export interface PredictionResult {
+	variantId: string
+	predictedStock: number
+	confidence?: number
+	message?: string
+}
+
+export async function predictVariantStock(variantId: string, _token?: string): Promise<ApiResponse<PredictionResult>> {
+	try {
+		const res = await api.get<any>(`/product/variant/${encodeURIComponent(variantId)}/predict`)
+		const raw = res.data
+		return { data: raw?.data ?? raw, message: raw?.message }
+	} catch (err) {
+		throw normalizeAxiosError(err)
+	}
+}

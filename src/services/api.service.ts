@@ -39,12 +39,26 @@ export function attachAuthInterceptor(instance: AxiosInstance) {
     config.headers = headers as any
     return config
   })
+
+  // Response interceptor to handle 401/403 errors
+  instance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      const status = error?.response?.status
+      if (status === 401 || status === 403) {
+        // Token expired or invalid - logout and redirect to login
+        useAuthStore.getState().logout()
+        window.location.href = '/login'
+      }
+      return Promise.reject(error)
+    }
+  )
 }
 
 // Default API instance with interceptor (optional for services to reuse)
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: false,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },

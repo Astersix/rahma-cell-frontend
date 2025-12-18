@@ -45,14 +45,15 @@ const AdminProductDetailPage = () => {
           }
         }
         setMainImageUrl(main)
-        // Ensure token is available before hitting protected category endpoint
-        if (catId && token) {
+        // Fetch category name
+        if (catId) {
           try {
-            const cres = await getCategoryById(String(catId))
-            setCategoryName(cres?.data?.name || '')
+            const cres = await getCategoryById(String(catId), token || undefined)
+            // Response is flat object, not nested under 'data'
+            setCategoryName((cres as any)?.name || cres?.data?.name || '')
           } catch (e) {
             try {
-              const all = await getAllCategories()
+              const all = await getAllCategories(token || undefined)
               const found = (all?.data || []).find((c: any) => String(c?.id) === String(catId))
               setCategoryName(found?.name || '')
             } catch {
@@ -93,8 +94,10 @@ const AdminProductDetailPage = () => {
       <div className="mx-auto max-w-4xl">
         <div className="flex items-center justify-between">
           <div className="flex gap-1 items-center mb-2">
-          <button className="inline-flex items-center justify-center h-8 hover:text-neutral-600 text-2xl font-semibold text-black"
-            onClick={() => navigate(-1)}>
+          <button
+            className="inline-flex items-center justify-center h-8 hover:text-neutral-600 text-2xl font-semibold text-black"
+            onClick={() => navigate('/admin/products')}
+          >
             &larr; Detail Produk
           </button>
         </div>

@@ -30,7 +30,7 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [tab, setTab] = useState<'all' | 'menunggu_pembayaran' | 'diproses' | 'dikirim' | 'selesai' | 'dibatalkan'>('all')
+  const [tab, setTab] = useState<'all' | 'menunggu_konfirmasi' | 'menunggu_pembayaran' | 'diproses' | 'dikirim' | 'selesai' | 'batal'>('all')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 10
 
@@ -92,7 +92,7 @@ const OrdersPage = () => {
     { key: 'diproses', label: 'Diproses' },
     { key: 'dikirim', label: 'Dikirim' },
     { key: 'selesai', label: 'Selesai' },
-    { key: 'dibatalkan', label: 'Dibatalkan' },
+    { key: 'batal', label: 'Dibatalkan' },
   ] as const
 
   function formatIDR(n?: number) {
@@ -129,7 +129,7 @@ const OrdersPage = () => {
             </span>
             <input
               className="w-full rounded-md border border-neutral-300 py-2 pl-9 pr-3 text-sm placeholder:text-neutral-400 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-              placeholder="Cari berdasarkan ID Pesanan atau Nama Pelanggan"
+              placeholder="Nama Pelanggan"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -141,7 +141,6 @@ const OrdersPage = () => {
           <table className="min-w-full text-sm">
             <thead className="bg-neutral-50 text-left text-neutral-600">
               <tr>
-                <th className="px-4 py-3 font-medium">ID Pesanan</th>
                 <th className="px-4 py-3 font-medium">Nama Pelanggan</th>
                 <th className="px-4 py-3 font-medium">Total</th>
                 <th className="px-4 py-3 font-medium">Metode Pembayaran</th>
@@ -157,16 +156,16 @@ const OrdersPage = () => {
               )}
               {!loading && !error && paginated.map((o) => (
                 <tr key={o.id} className="hover:bg-neutral-50 cursor-pointer" onClick={() => navigate(`/admin/orders/${encodeURIComponent(String(o.id))}`)}>
-                  <td className="px-4 py-3">#{o.id}</td>
                   <td className="px-4 py-3">{o.user_name || '-'}</td>
                   <td className="px-4 py-3">{formatIDR(o.total)}</td>
                   <td className="px-4 py-3">{(o.payment_method || '').toUpperCase()}</td>
                   <td className="px-4 py-3">
-                    {o.status === 'menunggu_pembayaran' ? <StatusBadge label="Menunggu Pembayaran" tone="warning" />
+                    {o.status === 'menunggu_konfirmasi' ? <StatusBadge label="Menunggu Konfirmasi" tone="warning" />
+                      : o.status === 'menunggu_pembayaran' ? <StatusBadge label="Menunggu Pembayaran" tone="warning" />
                       : o.status === 'diproses' ? <StatusBadge label="Diproses" tone="process" />
                       : o.status === 'dikirim' ? <StatusBadge label="Dikirim" tone="process" />
                       : o.status === 'selesai' ? <StatusBadge label="Selesai" tone="success" />
-                      : o.status === 'dibatalkan' ? <StatusBadge label="Dibatalkan" tone="warning" />
+                      : o.status === 'batal' ? <StatusBadge label="Dibatalkan" tone="warning" />
                       : <span className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700">{o.status}</span>}
                   </td>
                 </tr>
@@ -186,31 +185,35 @@ const OrdersPage = () => {
                 icon="arrow-left"
                 size="sm"
                 variant="light"
-                className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100"
+                className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
               />
-              {Array.from({ length: totalPages }).map((_, idx) => {
-                const pnum = idx + 1
-                const active = pnum === page
-                return (
-                  <button
-                    key={pnum}
-                    onClick={() => setPage(pnum)}
-                    className={active
-                      ? 'h-8 w-8 rounded-md bg-black text-white'
-                      : 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
-                  >
-                    {pnum}
-                  </button>
-                )
-              })}
+              {[page - 1, page, page + 1]
+                .filter(pnum => pnum >= 1 && pnum <= totalPages)
+                .map((pnum) => {
+                  const active = pnum === page
+                  return (
+                    <button
+                      key={pnum}
+                      onClick={() => setPage(pnum)}
+                      className={active
+                        ? 'h-8 w-8 rounded-md bg-black text-white'
+                        : 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
+                      disabled={loading}
+                    >
+                      {pnum}
+                    </button>
+                  )
+                })}
               <ButtonIcon
                 aria-label="Next"
                 icon="arrow-right"
                 size="sm"
                 variant="light"
-                className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100"
+                className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || loading}
               />
             </div>
           </div>

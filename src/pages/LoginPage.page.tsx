@@ -22,14 +22,25 @@ const LoginPage = () => {
 		setLoading(true)
 		try {
 			const data = await login({ email, password })
-			const role = (data.user?.role === 'admin') ? 'admin' : 'user'
-			const token = (data as any).token
-				?? (data as any).accessToken
-				?? (data as any).jwt
-				?? (data as any)?.data?.token
-				?? (data as any)?.data?.accessToken
-				?? null
-			if (role === 'admin') loginAsAdmin(token); else loginAsUser(token)
+			
+			const role = (data.user?.role === 'admin') ? 'admin' : 'customer'
+			const token = data.accessToken 
+				|| data.token 
+				|| (data as any).jwt
+				|| (data as any)?.data?.token
+				|| (data as any)?.data?.accessToken
+				|| null
+			
+			if (!token) {
+				throw new Error('Token tidak ditemukan dalam respons')
+			}
+			
+			if (role === 'admin') {
+				loginAsAdmin(token)
+			} else {
+				loginAsUser(token)
+			}
+			
 			navigate(role === 'admin' ? '/admin/dashboard' : '/homepage')
 		} catch (err: any) {
 			const message = err?.message || err?.data?.message || 'Gagal masuk. Coba lagi.'
@@ -41,7 +52,7 @@ const LoginPage = () => {
 
 	return (
 		<MainLayout>
-			<section className="mx-auto max-w-3xl">
+			<section className="mx-auto max-w-3xl pb-10">
 				<div className="mb-8 text-center">
 					<h1 className="text-2xl font-semibold">Selamat Datang Kembali!</h1>
 					<p className="mt-2 text-sm text-neutral-600">
@@ -62,13 +73,12 @@ const LoginPage = () => {
 						<div>
 							<label className="mb-1 block text-sm font-medium text-black">Kata Sandi</label>
 							<div className="relative">
-								<input
+								<Input
 									type={showPassword ? 'text' : 'password'}
 									placeholder="Masukkan kata sandi Anda"
 									value={password}
 									onChange={e => setPassword(e.target.value)}
 									required
-									className="block w-full rounded-md border border-neutral-200 bg-white px-3 py-2 pr-9 text-sm text-black placeholder:text-neutral-400 outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,0,0,0.1)]"
 								/>
 								<button
 									type="button"

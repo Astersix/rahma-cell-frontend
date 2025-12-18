@@ -39,7 +39,7 @@ const RegisterPage = () => {
 
     return (
         <MainLayout>
-            <section className="mx-auto max-w-3xl">
+            <section className="mx-auto max-w-3xl pb-10">
                 <div className="mb-8 text-center">
                     <h1 className="text-2xl font-semibold">Bergabung dengan CV Rahma Cell</h1>
                     <p className="mt-2 text-sm text-neutral-600">

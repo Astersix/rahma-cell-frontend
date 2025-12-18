@@ -35,9 +35,28 @@ const ProductCartPage = () => {
 				setUserId(uid)
 				const cart = await getCartByUserId(uid, token)
 				if (cancelled) return
-				const list = cart.cart_product || []
-				setItems(list)
-				setSelected(list.map(i => i.id))
+				let list = cart.cart_product || []
+				
+				// Auto-correct quantities that exceed available stock
+				const correctionPromises = list.map(async (item) => {
+					const stock = Number(item.product_variant?.stock) || 0
+					if (item.quantity > stock && stock > 0) {
+						try {
+							await updateCartItemQuantity(uid, item.id, { quantity: stock }, token)
+							return { ...item, quantity: stock }
+						} catch {
+							return item
+						}
+					}
+					return item
+				})
+				
+				list = await Promise.all(correctionPromises)
+				
+				if (!cancelled) {
+					setItems(list)
+					setSelected(list.map(i => i.id))
+				}
 			} catch (err: any) {
 				if (!cancelled) setError(err?.message || 'Gagal memuat keranjang')
 			} finally {
@@ -102,6 +121,8 @@ const ProductCartPage = () => {
 	}
 	async function inc(item: CartProduct) {
 		if (!userId) return
+		const stock = Number(item.product_variant?.stock) || 0
+		if (item.quantity >= stock) return
 		const next = item.quantity + 1
 		await updateCartItemQuantity(userId, item.id, { quantity: next }, token)
 		setItems(prev => prev.map(p => p.id === item.id ? { ...p, quantity: next } : p))
@@ -118,7 +139,7 @@ const ProductCartPage = () => {
 		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
 				<nav className="mb-6 text-xs text-neutral-500">
-					<button onClick={() => navigate('/')} className="text-neutral-600 hover:underline">Beranda</button>
+					<button onClick={() => navigate('/')} className="text-neutral-600 hover:underline">← Beranda</button>
 					<span className="mx-2">/</span>
 					<span className="text-neutral-800">Keranjang Belanja</span>
 				</nav>
@@ -175,6 +196,7 @@ const ProductCartPage = () => {
 												</td>
 												<td className="px-4 py-4 text-neutral-800">{formatIDR(price)}</td>
 												<td className="px-4 py-4">
+												<div className="flex flex-col items-start">
 													<div className="flex items-center">
 														<button
 															className="h-6 w-6 rounded border border-neutral-300 text-xs hover:bg-neutral-100"
@@ -182,9 +204,14 @@ const ProductCartPage = () => {
 														>−</button>
 														<div className="mx-2 min-w-6 text-center text-neutral-800">{item.quantity}</div>
 														<button
-															className="h-6 w-6 rounded border border-neutral-300 text-xs hover:bg-neutral-100"
+															className={`h-6 w-6 rounded border text-xs ${item.quantity >= (Number(item.product_variant?.stock) || 0) ? 'border-neutral-200 text-neutral-300 cursor-not-allowed' : 'border-neutral-300 hover:bg-neutral-100'}`}
 															onClick={() => inc(item)}
+															disabled={item.quantity >= (Number(item.product_variant?.stock) || 0)}
 														>+</button>
+													</div>
+													{item.quantity >= (Number(item.product_variant?.stock) || 0) && (
+														<div className="mt-1 text-[10px] text-amber-600">Stok maksimal</div>
+													)}
 													</div>
 												</td>
 												<td className="px-4 py-4 font-medium text-neutral-800">{formatIDR(lineTotal)}</td>
