@@ -5,6 +5,7 @@ import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import PopupModal from '../../components/ui/PopupModal'
 import { orderService } from '../../services/order.service'
+import { paymentService } from '../../services/payment.service'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -20,6 +21,12 @@ const OrderDetailPage = () => {
 	const [cancelling, setCancelling] = useState(false)
 	const [showCancelModal, setShowCancelModal] = useState(false)
 	const [showSuccessModal, setShowSuccessModal] = useState(false)
+	const [qrUrl, setQrUrl] = useState<string | null>(null)
+	const [paymentExpiry, setPaymentExpiry] = useState<Date | null>(null)
+	const [timer, setTimer] = useState<number>(15 * 60) // 15 minutes
+	const [paymentStatusLabel, setPaymentStatusLabel] = useState<string>('Menunggu Pembayaran')
+	const [showPaymentSuccessModal, setShowPaymentSuccessModal] = useState(false)
+	const [showPaymentFailureModal, setShowPaymentFailureModal] = useState(false)
 
 	useEffect(() => {
 		if (!orderId) return
@@ -30,7 +37,63 @@ const OrderDetailPage = () => {
 				setError(null)
 				const res = await orderService.getOrderById(orderId!)
 				if (cancelled) return
-				setOrder(res?.data || res)
+				const orderData = res?.data || res
+				setOrder(orderData)
+
+				// If payment method is QRIS and status is waiting for payment, load QR code
+				if (orderData?.payment_method === 'qris' && orderData?.status?.toLowerCase() === 'menunggu_pembayaran') {
+					try {
+						const qrRes = await paymentService.initiateQris(orderId!)
+						const url = qrRes?.data?.qr?.url || qrRes?.data?.payment?.qr_code || null
+						
+						if (!cancelled && typeof url === 'string') {
+							setQrUrl(url)
+						}
+
+						// Set payment expiry time (persist across refresh using localStorage)
+						if (!cancelled) {
+							const storageKey = `payment-expiry-${orderId}`
+							let expiry: Date
+							
+							// Check localStorage first for existing expiry
+							const storedExpiry = localStorage.getItem(storageKey)
+							if (storedExpiry) {
+								expiry = new Date(storedExpiry)
+							} else {
+								// Try to get expiry from backend response
+								const expiryStr = qrRes?.data?.qr?.expiry || qrRes?.data?.payment?.expiry_time
+								
+								if (expiryStr) {
+									expiry = new Date(expiryStr)
+								} else {
+									// If no expiry from backend, set 15 minutes from now
+									expiry = new Date(Date.now() + 15 * 60 * 1000)
+								}
+								
+								// Store expiry in localStorage for persistence across refresh
+								localStorage.setItem(storageKey, expiry.toISOString())
+							}
+							
+							setPaymentExpiry(expiry)
+						}
+
+						// Start polling payment status in background
+						paymentService.waitForSettlement(orderId!, { intervalMs: 3000, timeoutMs: 30 * 60 * 1000 }).then((p) => {
+							if (cancelled) return
+							const st = (p?.payment?.status || '').toString().toLowerCase()
+							if (['settlement', 'capture', 'paid', 'success'].includes(st)) {
+								setPaymentStatusLabel('Pembayaran Berhasil')
+								setShowPaymentSuccessModal(true)
+								// Clean up localStorage when payment succeeds
+								localStorage.removeItem(`payment-expiry-${orderId}`)
+							} else if (['failed', 'expire', 'cancel'].includes(st)) {
+								setPaymentStatusLabel('Pembayaran Gagal/Kedaluwarsa')
+							}
+						})
+					} catch (qrErr) {
+						// Silent QR error - user can still view order details
+					}
+				}
 			} catch (err: any) {
 				if (!cancelled) setError(err?.message || 'Gagal memuat detail pesanan')
 			} finally {
@@ -43,11 +106,42 @@ const OrderDetailPage = () => {
 		}
 	}, [orderId])
 
+	useEffect(() => {
+		if (!paymentExpiry) return
+		
+		const updateTimer = () => {
+			const now = Date.now()
+			const expiry = paymentExpiry.getTime()
+			const remaining = Math.max(0, Math.floor((expiry - now) / 1000))
+			
+			setTimer(remaining)
+			
+			if (remaining === 0 && paymentStatusLabel !== 'Pembayaran Berhasil') {
+				setPaymentStatusLabel('Pembayaran Kedaluwarsa')
+				setShowPaymentFailureModal(true)
+				// Clean up localStorage when payment expires
+				if (orderId) {
+					localStorage.removeItem(`payment-expiry-${orderId}`)
+				}
+			}
+		}
+		
+		// Update immediately
+		updateTimer()
+		
+		// Update every second
+		const interval = setInterval(updateTimer, 1000)
+		
+		return () => clearInterval(interval)
+	}, [paymentExpiry, paymentStatusLabel, orderId])
+
 	async function handleCancel() {
 		if (!orderId || cancelling) return
 		try {
 			setCancelling(true)
 			await orderService.cancelOrder(orderId)
+			// Clean up localStorage when order is canceled
+			localStorage.removeItem(`payment-expiry-${orderId}`)
 			setShowCancelModal(false)
 			setShowSuccessModal(true)
 		} catch (err: any) {
@@ -228,6 +322,31 @@ const OrderDetailPage = () => {
 							</div>
 						</Card>
 
+						{/* QRIS Payment Section */}
+						{order.payment_method === 'qris' && order.status?.toLowerCase() === 'menunggu_pembayaran' && qrUrl && (
+							<Card className="p-0">
+								<div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200">
+									<div className="text-sm font-semibold text-neutral-900">Pembayaran QRIS</div>
+									<div className="text-xs font-semibold text-amber-600">{paymentStatusLabel}</div>
+								</div>
+								<div className="px-4 py-4">
+									<div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 p-6">
+										<div className="mb-3 h-48 w-48 rounded-md bg-neutral-100 p-2">
+											<img src={qrUrl} alt="QR Code" className="h-full w-full object-contain" />
+										</div>
+										<div className="mb-2 text-lg font-bold tracking-wider text-neutral-900">
+											{String(Math.floor(timer / 3600)).padStart(2, '0')}:
+											{String(Math.floor((timer % 3600) / 60)).padStart(2, '0')}:
+											{String(timer % 60).padStart(2, '0')}
+										</div>
+										<div className="text-center text-xs text-neutral-600">
+											Pindai kode QR di atas menggunakan m-banking atau e-wallet Anda. Status pesanan akan berubah otomatis setelah pembayaran terkonfirmasi.
+										</div>
+									</div>
+								</div>
+							</Card>
+						)}
+
 						{/* Catatan */}
 						{order.payment_method === 'cod' && (
 							<Card className="bg-amber-50 border-amber-200">
@@ -288,6 +407,44 @@ const OrderDetailPage = () => {
 					variant: 'filled',
 					onClick: () => {
 						setShowSuccessModal(false)
+						navigate('/orders')
+					},
+				}}
+			/>
+
+			<PopupModal
+				open={showPaymentSuccessModal}
+				onClose={() => {
+					setShowPaymentSuccessModal(false)
+					window.location.reload()
+				}}
+				icon="success"
+				title="Pembayaran Berhasil!"
+				description="Pesanan Anda sedang diproses. Halaman akan dimuat ulang untuk menampilkan status terbaru."
+				primaryButton={{
+					label: 'Muat Ulang',
+					variant: 'filled',
+					onClick: () => {
+						setShowPaymentSuccessModal(false)
+						window.location.reload()
+					},
+				}}
+			/>
+
+			<PopupModal
+				open={showPaymentFailureModal}
+				onClose={() => {
+					setShowPaymentFailureModal(false)
+					navigate('/orders')
+				}}
+				icon="error"
+				title="Pembayaran Gagal"
+				description="Waktu pembayaran telah habis. Silakan buat pesanan baru untuk melanjutkan."
+				primaryButton={{
+					label: 'Kembali ke Pesanan',
+					variant: 'filled',
+					onClick: () => {
+						setShowPaymentFailureModal(false)
 						navigate('/orders')
 					},
 				}}

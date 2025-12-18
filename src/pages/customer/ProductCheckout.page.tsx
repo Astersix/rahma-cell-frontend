@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/auth.store'
 import { orderService, type PlaceOrderRequest } from '../../services/order.service'
 import { getMyProfile, type Address } from '../../services/user.service'
 import { deleteCartItem, getCartByUserId } from '../../services/cart.service'
+import { paymentService } from '../../services/payment.service'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -149,9 +150,39 @@ const ProductCheckoutPage = () => {
 			const res = await orderService.placeOrder(payload)
 			const orderId = res?.data?.order_id
 
-			// If QRIS: navigate to payment page (QRIS will be initiated there)
+			// If QRIS: initiate payment immediately and navigate with data
 			if (payment === 'qris' && orderId) {
-				navigate(`/payment/${orderId}`)
+				try {
+					// Initiate QRIS payment here to avoid multiple backend calls on page refresh
+					const qrRes = await paymentService.initiateQris(String(orderId))
+					const qrUrl = qrRes?.data?.qr?.url || qrRes?.data?.payment?.qr_code || null
+					const expiryStr = qrRes?.data?.qr?.expiry || qrRes?.data?.payment?.expiry_time
+					
+					// Calculate expiry time
+					let expiry: Date
+					if (expiryStr) {
+						expiry = new Date(expiryStr)
+					} else {
+						expiry = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes default
+					}
+					
+					// Store expiry in localStorage immediately
+					const storageKey = `payment-expiry-${orderId}`
+					localStorage.setItem(storageKey, expiry.toISOString())
+					
+					// Navigate to payment page with QR data in state
+					navigate(`/payment/${orderId}`, {
+						state: {
+							qrUrl,
+							expiry: expiry.toISOString(),
+							paymentInitiated: true
+						}
+					})
+				} catch (qrError: any) {
+					// If QR generation fails, still navigate but let payment page handle it
+					console.error('Failed to initiate QRIS:', qrError)
+					navigate(`/payment/${orderId}`)
+				}
 			} else {
 				// For COD: show success popup
 				setShowSuccessPopup(true)
