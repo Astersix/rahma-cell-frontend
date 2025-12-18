@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -15,12 +15,19 @@ function formatIDR(n?: number) {
 const QrisPaymentPage = () => {
   const navigate = useNavigate()
   const { orderId } = useParams<{ orderId: string }>()
+  const location = useLocation()
+
+  // Get pre-initiated payment data from navigation state (if available)
+  const stateData = (location.state as any)
+  const preInitiatedQrUrl = stateData?.qrUrl
+  const preInitiatedExpiry = stateData?.expiry
+  const paymentInitiated = stateData?.paymentInitiated
 
   // no explicit loading UI; keep page responsive
   const [error, setError] = useState<string | null>(null)
   const [order, setOrder] = useState<any | null>(null)
-  const [qrUrl, setQrUrl] = useState<string | null>(null)
-  const [paymentExpiry, setPaymentExpiry] = useState<Date | null>(null)
+  const [qrUrl, setQrUrl] = useState<string | null>(preInitiatedQrUrl || null)
+  const [paymentExpiry, setPaymentExpiry] = useState<Date | null>(preInitiatedExpiry ? new Date(preInitiatedExpiry) : null)
   const [timer, setTimer] = useState<number>(15 * 60) // 15 minutes
   const [statusLabel, setStatusLabel] = useState<string>('Menunggu Pembayaran')
   const [showSuccessModal, setShowSuccessModal] = useState(false)
@@ -60,44 +67,60 @@ const QrisPaymentPage = () => {
         const found = Array.isArray(list) ? list.find((o) => String(o.id) === String(orderId)) : null
         if (mounted) setOrder(found || null)
         
-        // Initiate QRIS payment (backend will return existing if already created)
-        const qrRes = await paymentService.initiateQris(orderId)
-        
-        // Extract QR URL from response (prioritize new structure)
-        const url =
-          qrRes?.data?.qr?.url ||
-          qrRes?.data?.payment?.qr_code ||
-          null
-        
-        if (mounted && typeof url === 'string') {
-          setQrUrl(url)
-        }
-
-        // Set payment expiry time (persist across refresh using localStorage)
-        if (mounted) {
-          const storageKey = `payment-expiry-${orderId}`
-          let expiry: Date
+        // Only call backend API if payment wasn't already initiated in checkout page
+        if (!paymentInitiated || !preInitiatedQrUrl) {
+          // Initiate QRIS payment (backend will return existing if already created)
+          const qrRes = await paymentService.initiateQris(orderId)
           
-          // Check localStorage first for existing expiry
-          const storedExpiry = localStorage.getItem(storageKey)
-          if (storedExpiry) {
-            expiry = new Date(storedExpiry)
-          } else {
-            // Try to get expiry from backend response
-            const expiryStr = qrRes?.data?.qr?.expiry || qrRes?.data?.payment?.expiry_time
+          // Extract QR URL from response (prioritize new structure)
+          const url =
+            qrRes?.data?.qr?.url ||
+            qrRes?.data?.payment?.qr_code ||
+            null
+          
+          if (mounted && typeof url === 'string') {
+            setQrUrl(url)
+          }
+
+          // Set payment expiry time (persist across refresh using localStorage)
+          if (mounted) {
+            const storageKey = `payment-expiry-${orderId}`
+            let expiry: Date
             
-            if (expiryStr) {
-              expiry = new Date(expiryStr)
+            // Check localStorage first for existing expiry
+            const storedExpiry = localStorage.getItem(storageKey)
+            if (storedExpiry) {
+              expiry = new Date(storedExpiry)
             } else {
-              // If no expiry from backend, set 15 minutes from now
-              expiry = new Date(Date.now() + 15 * 60 * 1000)
+              // Try to get expiry from backend response
+              const expiryStr = qrRes?.data?.qr?.expiry || qrRes?.data?.payment?.expiry_time
+              
+              if (expiryStr) {
+                expiry = new Date(expiryStr)
+              } else {
+                // If no expiry from backend, set 15 minutes from now
+                expiry = new Date(Date.now() + 15 * 60 * 1000)
+              }
+              
+              // Store expiry in localStorage for persistence across refresh
+              localStorage.setItem(storageKey, expiry.toISOString())
             }
             
-            // Store expiry in localStorage for persistence across refresh
-            localStorage.setItem(storageKey, expiry.toISOString())
+            setPaymentExpiry(expiry)
           }
+        } else {
+          // Use pre-initiated data from checkout page
+          // Expiry already set in state initialization
+          // QR URL already set in state initialization
           
-          setPaymentExpiry(expiry)
+          // Ensure localStorage has the expiry for page refresh scenarios
+          if (preInitiatedExpiry && mounted) {
+            const storageKey = `payment-expiry-${orderId}`
+            const storedExpiry = localStorage.getItem(storageKey)
+            if (!storedExpiry) {
+              localStorage.setItem(storageKey, preInitiatedExpiry)
+            }
+          }
         }
 
         // Start polling payment status in background

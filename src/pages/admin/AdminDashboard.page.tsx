@@ -182,6 +182,7 @@ const AdminDashboard = () => {
 			])
 			console.log('Best Selling Data:', bestSellingData)
 			console.log('Trend Data:', trendData)
+			console.log('Period:', selectedPeriod)
 			setBestSelling(bestSellingData)
 			setSalesTrend(trendData)
 		} catch (err) {
@@ -230,7 +231,9 @@ const AdminDashboard = () => {
 	}
 
 	const formatPercentage = (value: number) => {
-		const sign = value >= 0 ? '+' : ''
+		// Handle edge cases
+		if (!isFinite(value) || isNaN(value)) return '0.0%'
+		const sign = value > 0 ? '+' : ''
 		return `${sign}${value.toFixed(1)}%`
 	}
 
