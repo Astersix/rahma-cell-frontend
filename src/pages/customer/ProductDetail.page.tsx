@@ -44,17 +44,17 @@ const ProductDetailPage = () => {
 				setProduct(p)
 				const vs = vres.data || []
 				setVariants(vs)
-												// Fetch category name for the product
-												if (p?.category_id) {
-													try {
-														const cres = await getCategoryById(String(p.category_id))
-													setCategoryName((cres as any)?.name || cres?.data?.name || '')
-													} catch {
-														setCategoryName('')
-													}
-												} else {
-													setCategoryName('')
-												}
+				// Fetch category name for the product
+				if (p?.category_id) {
+					try {
+						const cres = await getCategoryById(String(p.category_id))
+					setCategoryName((cres as any)?.name || cres?.data?.name || '')
+					} catch {
+						setCategoryName('')
+					}
+				} else {
+					setCategoryName('')
+				}
 				const first = vs[0]
 				const firstThumb = first?.product_image?.find((img) => img.is_thumbnail)?.image_url || first?.product_image?.[0]?.image_url || null
 				setSelectedVariantId(first?.id || null)
@@ -160,47 +160,33 @@ const ProductDetailPage = () => {
 		}
 		
 		try {
-			const me = await getMyProfile(token)
-			const userId = me.id
-			
-			// Check existing cart to prevent exceeding stock
-			const cart = await getCartByUserId(userId, token)
-			const existingItem = cart.cart_product?.find(item => String(item.product_variant_id) === String(selectedVariant.id))
-			const existingQty = existingItem?.quantity || 0
+			// Direct checkout: check stock without modifying cart
 			const availableStock = Number(selectedVariant.stock) || 0
-			const remainingStock = availableStock - existingQty
 			
-			if (remainingStock <= 0) {
-				setActionMsg('Stok tidak tersedia. Item ini sudah mencapai batas maksimal di keranjang.')
+			if (qty > availableStock) {
+				setActionMsg(`Stok tidak mencukupi. Tersedia: ${availableStock}`)
 				setTimeout(() => setActionMsg(null), 2000)
 				return
 			}
 			
-			// Limit quantity to remaining stock
-			const qtyToAdd = Math.min(qty, remainingStock)
-			
-			// Add to cart
-			await addItemToCart(userId, { product_variant_id: String(selectedVariant.id), quantity: qtyToAdd }, token)
-			
-			// Prepare checkout data
+			// Prepare checkout data for direct purchase
 			const thumbnailImage = selectedVariant.product_image?.find(img => img.is_thumbnail)?.image_url || selectedVariant.product_image?.[0]?.image_url || ''
 			const checkoutItem = {
 				key: `${product.id}-${selectedVariant.id}`,
 				productName: product.name,
 				variantName: selectedVariant.variant_name,
 				price: selectedVariant.price,
-				quantity: qtyToAdd,
+				quantity: qty,
 				imageUrl: thumbnailImage,
 				variantId: String(selectedVariant.id)
 			}
 			
-			// Navigate to checkout with the item data and buyNow flag
+			// Navigate to checkout with direct purchase flag
 			navigate('/checkout', {
 				state: {
 					selectedItems: [checkoutItem],
 					selectedKeys: [checkoutItem.key],
-					isBuyNow: true,
-					buyNowVariantId: String(selectedVariant.id)
+					checkoutMethod: 'direct'
 				}
 			})
 		} catch (err: any) {

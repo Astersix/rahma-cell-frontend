@@ -193,6 +193,23 @@ const OrderHistoryPage = () => {
 	const [tab, setTab] = useState<TabKey>('semua')
 	const [showLogoutModal, setShowLogoutModal] = useState(false)
 
+	// Prevent going back to checkout page using browser back button
+	useEffect(() => {
+		// Push a dummy state to history to intercept back navigation
+		window.history.pushState(null, '', window.location.href)
+		
+		const handlePopState = () => {
+			// When user presses back button, redirect to home page instead
+			navigate('/', { replace: true })
+		}
+		
+		window.addEventListener('popstate', handlePopState)
+		
+		return () => {
+			window.removeEventListener('popstate', handlePopState)
+		}
+	}, [navigate])
+
 	function handleLogoutClick() {
 		setShowLogoutModal(true)
 	}
@@ -264,7 +281,7 @@ const OrderHistoryPage = () => {
 											'dibatalkan': 'Dibatalkan',
 										}
 										const note = k === 'belum-bayar' ? 'Menunggu pembayaran' : (k === 'dikirim' ? 'Pesanan dalam perjalanan' : undefined)
-										const cta = k === 'selesai' ? 'Beli lagi' : undefined
+										const cta = k === 'selesai' ? undefined : undefined
 										return (
 											<OrderCard
 												key={o.id}

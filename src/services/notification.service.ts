@@ -5,6 +5,7 @@ export type ISODateString = string
 export interface NotificationItem {
   id?: string
   user_id?: string
+  order_id?: string
   title?: string
   message?: string
   is_read?: boolean
@@ -25,27 +26,28 @@ export type ApiEnvelope<T> = {
 }
 
 export const notificationService = {
-  // POST /notification
-  send: async (dto: CreateNotificationDto): Promise<ApiEnvelope<NotificationItem>> => {
-    const res = await api.post<ApiEnvelope<NotificationItem>>('/notification', dto)
+  // GET /notification - Get current user's notifications (uses auth token)
+  getMyNotifications: async (): Promise<NotificationItem[]> => {
+    const res = await api.get<NotificationItem[]>('/notification')
     return res.data
   },
 
-  // GET /notification/:user_id
-  getByUser: async (userId: string): Promise<ApiEnvelope<NotificationItem[]>> => {
-    const res = await api.get<ApiEnvelope<NotificationItem[]>>(`/notification/${encodeURIComponent(userId)}`)
+  // PATCH /notification/:id/read - Mark single notification as read
+  markAsRead: async (id: string): Promise<ApiEnvelope<null>> => {
+    const res = await api.patch<ApiEnvelope<null>>(`/notification/${encodeURIComponent(id)}/read`)
     return res.data
   },
 
-  // PATCH /notification/:id/read
-  markAsRead: async (id: string): Promise<ApiEnvelope<NotificationItem>> => {
-    const res = await api.patch<ApiEnvelope<NotificationItem>>(`/notification/${encodeURIComponent(id)}/read`)
+  // PATCH /notification/read-all - Mark all notifications as read
+  markAllAsRead: async (): Promise<ApiEnvelope<null>> => {
+    const res = await api.patch<ApiEnvelope<null>>('/notification/read-all')
     return res.data
   },
 
-  // DELETE /notification/:id
-  delete: async (id: string): Promise<ApiEnvelope<null>> => {
-    const res = await api.delete<ApiEnvelope<null>>(`/notification/${encodeURIComponent(id)}`)
-    return res.data
-  },
+  // // Legacy endpoints (keep for backward compatibility if needed)
+  // // GET /notification/:user_id
+  // getByUser: async (userId: string): Promise<ApiEnvelope<NotificationItem[]>> => {
+  //   const res = await api.get<ApiEnvelope<NotificationItem[]>>(`/notification/${encodeURIComponent(userId)}`)
+  //   return res.data
+  // },
 }

@@ -8,6 +8,7 @@ interface NotificationBarProps {
 	isActive?: boolean
 	isRead?: boolean
 	onClick?: () => void
+	onAction?: () => void
 }
 
 const NotificationBar = ({
@@ -20,6 +21,7 @@ const NotificationBar = ({
 	isActive = false,
 	isRead = false,
 	onClick,
+	onAction,
 }: NotificationBarProps) => {
 	const IconCheck = () => (
 		<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -75,7 +77,7 @@ const NotificationBar = ({
 						className="mt-2 text-sm font-medium text-neutral-900 underline hover:text-neutral-700"
 						onClick={(e) => {
 							e.stopPropagation()
-							// Handle action click if needed
+							if (onAction) onAction()
 						}}
 					>
 						{action}

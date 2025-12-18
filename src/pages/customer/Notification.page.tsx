@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import NotificationBar from '../../components/ui/NotificationBar'
 import Button from '../../components/ui/Button'
 import { notificationService, type NotificationItem } from '../../services/notification.service'
-import { getMyProfile } from '../../services/user.service'
 import { useAuthStore } from '../../store/auth.store'
 
 function formatTimestamp(isoString?: string): string {
@@ -60,6 +60,7 @@ function groupNotificationsByDate(notifications: NotificationItem[]) {
 }
 
 const NotificationPage = () => {
+	const navigate = useNavigate()
 	const token = useAuthStore((s) => s.token)
 
 	const [notifications, setNotifications] = useState<NotificationItem[]>([])
@@ -73,12 +74,9 @@ const NotificationPage = () => {
 			try {
 				setLoading(true)
 				setError(null)
-				// Get user profile first to get user ID
-				const profile = await getMyProfile(token)
-				const userId = profile.id
-				const res = await notificationService.getByUser(userId)
-				const items = (res.notif || []) as NotificationItem[]
-				setNotifications(items)
+				// Use new endpoint that automatically gets current user's notifications
+				const items = await notificationService.getMyNotifications()
+				setNotifications(Array.isArray(items) ? items : [])
 			} catch (err: any) {
 				setError(err?.message || 'Gagal memuat notifikasi')
 			} finally {
@@ -105,12 +103,19 @@ const NotificationPage = () => {
 	}
 
 	async function handleMarkAllRead() {
-		const unreadNotifs = notifications.filter((n) => !n.is_read && n.id)
 		try {
-			await Promise.all(unreadNotifs.map((n) => notificationService.markAsRead(n.id!)))
+			await notificationService.markAllAsRead()
 			setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
 		} catch (err) {
 			// Silent error
+		}
+	}
+
+	function handleViewOrder(notif: NotificationItem) {
+		// Try to get order ID from notif.order_id or extract from message
+		const orderId = notif.order_id || notif.message?.match(/#(\w+)/)?.[1]
+		if (orderId) {
+			navigate(`/orders/${orderId}`)
 		}
 	}
 
@@ -174,12 +179,11 @@ const NotificationPage = () => {
 								<div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
 									{group.items.map((notif, idx) => {
 										// Determine icon based on message content
-										const icon = notif.message?.toLowerCase().includes('dikirim') ? 'truck' : 'check'
+										const icon = notif.message?.toLowerCase().includes('shipped') ? 'truck' : 'check'
 										// Determine badge
 										const badge = !notif.is_read ? 'Baru' : undefined
-										// Extract order ID from message if present
-										const orderMatch = notif.message?.match(/#(\w+)/)
-										const orderText = orderMatch ? orderMatch[0] : ''
+										// Check if notification has an order ID (either from field or message)
+										const hasOrderId = notif.order_id || notif.message?.match(/#(\w+)/)
 
 										return (
 											<div key={notif.id || idx}>
@@ -187,12 +191,13 @@ const NotificationPage = () => {
 													icon={icon}
 													title={notif.title || 'Notifikasi'}
 													message={notif.message || ''}
-													action={orderText ? 'Lihat Pesanan' : undefined}
+													action={hasOrderId ? 'Lihat Pesanan' : undefined}
 													timestamp={formatTimestamp(notif.created_at)}
 													badge={badge}
 													isActive={activeId === notif.id}
 													isRead={notif.is_read}
 													onClick={() => handleNotificationClick(notif)}
+													onAction={() => handleViewOrder(notif)}
 												/>
 												{idx < group.items.length - 1 && (
 													<div className="border-t border-neutral-100" />

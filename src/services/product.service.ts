@@ -358,17 +358,27 @@ export async function getLowStockProducts(threshold: number = 5, _token?: string
 
 // PREDICTION: Get stock prediction for a variant
 export interface PredictionResult {
-	variantId: string
-	predictedStock: number
-	confidence?: number
-	message?: string
+	variant_id: string
+	product_id?: string
+	product_name?: string
+	variant_name?: string
+	current_stock?: number
+	current_price?: number
+	prediction: {
+		prediction_period: string
+		daily_predictions: number[]
+		total_restock_recommended: number
+	}
+	generated_at: string
 }
 
 export async function predictVariantStock(variantId: string, _token?: string): Promise<ApiResponse<PredictionResult>> {
 	try {
 		const res = await api.get<any>(`/product/variant/${encodeURIComponent(variantId)}/predict`)
 		const raw = res.data
-		return { data: raw?.data ?? raw, message: raw?.message }
+		// Backend returns { success: true, data: {...} }
+		const data = raw?.data ?? raw
+		return { data, message: raw?.message }
 	} catch (err) {
 		throw normalizeAxiosError(err)
 	}

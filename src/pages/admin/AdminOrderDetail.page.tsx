@@ -174,10 +174,10 @@ const AdminOrderDetailPage = () => {
 							<div className="px-4 pb-4 text-xs text-neutral-700">
 								<div className="mb-2">Ubah Status</div>
 								<select 
-									className="mb-3 w-full rounded-md border border-neutral-300 px-3 py-2 text-xs"
+									className="mb-3 w-full rounded-md border border-neutral-300 px-3 py-2 text-xs disabled:bg-neutral-100 disabled:cursor-not-allowed"
 									value={selectedStatus}
 									onChange={(e) => setSelectedStatus(e.target.value)}
-									disabled={updating}
+									disabled={updating || order?.status === 'selesai' || order?.status === 'batal'}
 								>
 									<option value="menunggu_konfirmasi">Menunggu Konfirmasi</option>
 									<option value="menunggu_pembayaran">Menunggu Pembayaran</option>
@@ -186,6 +186,11 @@ const AdminOrderDetailPage = () => {
 									<option value="selesai">Selesai</option>
 									<option value="batal">Dibatalkan</option>
 								</select>
+								{(order?.status === 'selesai' || order?.status === 'batal') && (
+									<div className="mb-3 rounded-md bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+										Status tidak dapat diubah untuk pesanan yang sudah selesai atau dibatalkan.
+									</div>
+								)}
 								{error && (
 									<div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
 										{error}
@@ -195,7 +200,7 @@ const AdminOrderDetailPage = () => {
 									fullWidth 
 									className="bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:opacity-50" 
 									onClick={handleUpdateStatus}
-									disabled={updating || !selectedStatus || selectedStatus === order?.status}
+									disabled={updating || !selectedStatus || selectedStatus === order?.status || order?.status === 'selesai' || order?.status === 'batal'}
 								>
 									{updating ? 'Menyimpan...' : 'Simpan status'}
 								</Button>
