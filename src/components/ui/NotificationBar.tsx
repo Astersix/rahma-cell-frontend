@@ -6,6 +6,7 @@ interface NotificationBarProps {
 	timestamp: string
 	badge?: string
 	isActive?: boolean
+	isRead?: boolean
 	onClick?: () => void
 }
 
@@ -17,6 +18,7 @@ const NotificationBar = ({
 	timestamp,
 	badge,
 	isActive = false,
+	isRead = false,
 	onClick,
 }: NotificationBarProps) => {
 	const IconCheck = () => (
@@ -47,10 +49,13 @@ const NotificationBar = ({
 			tabIndex={onClick ? 0 : undefined}
 		>
 			{/* Icon */}
-			<div className="shrink-0 pt-0.5">
+			<div className="shrink-0 pt-0.5 relative">
 				<div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-900 text-white">
 					{icon === 'check' ? <IconCheck /> : <IconTruck />}
 				</div>
+				{!isRead && (
+					<div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-red-600 border-2 border-white" />
+				)}
 			</div>
 
 			{/* Content */}
@@ -64,7 +69,7 @@ const NotificationBar = ({
 					)}
 				</div>
 				<p className="text-sm text-neutral-700">{message}</p>
-				{action && (
+				{action && isActive && (
 					<button
 						type="button"
 						className="mt-2 text-sm font-medium text-neutral-900 underline hover:text-neutral-700"

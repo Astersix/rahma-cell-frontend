@@ -3,6 +3,7 @@ import AdminLayout from "../../layouts/AdminLayout"
 import { dashboardService, type DashboardStats, type BestSellingProduct, type SalesTrend } from "../../services/dashboard.service"
 import { getLowStockProducts, type LowStockItem } from "../../services/product.service"
 import ButtonIcon from "../../components/ui/ButtonIcon"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
 
@@ -37,57 +38,108 @@ const StatCard = ({ title, value, delta, sub }: { title: string; value: string; 
 // 	</button>
 // )
 
-const BarChart = ({ data }: { data: BestSellingProduct[] }) => {
+const ProductBarChart = ({ data }: { data: any[] }) => {
 	if (!data || data.length === 0) {
 		return <div className="py-8 text-center text-sm text-neutral-500">Tidak ada data</div>
 	}
-	const maxSold = Math.max(...data.map(d => d.totalSold), 1)
+	
+	// Transform data for Recharts with null checks
+	const chartData = data.slice(0, 12).filter(item => item && item.productName).map((item, idx) => ({
+		name: `${(item.productName || '').slice(0, 10)}`,
+		fullName: item.productName || '',
+		terjual: Number(item.quantitySelling || item.totalSold || 0),
+		idx
+	}))
+	
 	return (
-		<div className="relative h-40 w-full">
-			<div className="absolute inset-0 flex items-end gap-2 px-3 pb-3">
-				{data.slice(0, 12).map((item, i) => {
-					const heightPercent = (item.totalSold / maxSold) * 100
-					return (
-						<div key={i} className="flex-1 group relative" title={`${item.productName} - ${item.variantName}: ${item.totalSold} terjual`}>
-							<div className="mx-auto w-4 rounded bg-red-500 hover:bg-red-600 transition-colors" style={{ height: `${Math.max(6, heightPercent)}%` }} />
-						</div>
-					)
-				})}
-			</div>
-		</div>
+		<ResponsiveContainer width="100%" height={160}>
+			<BarChart data={chartData}>
+				<CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+				<XAxis 
+					dataKey="name" 
+					tick={{ fontSize: 11, fill: '#737373' }}
+					axisLine={{ stroke: '#e5e5e5' }}
+				/>
+				<YAxis 
+					tick={{ fontSize: 11, fill: '#737373' }}
+					axisLine={{ stroke: '#e5e5e5' }}
+				/>
+				<Tooltip 
+					content={({ active, payload }) => {
+						if (active && payload && payload.length) {
+							return (
+								<div className="rounded-md border border-neutral-200 bg-white p-2 shadow-sm">
+									<p className="text-xs font-medium text-neutral-900">{payload[0].payload.fullName}</p>
+									<p className="text-xs text-neutral-600">{payload[0].value} unit terjual</p>
+								</div>
+							)
+						}
+						return null
+					}}
+				/>
+				<Bar dataKey="terjual" fill="#ef4444" radius={[4, 4, 0, 0]} />
+			</BarChart>
+		</ResponsiveContainer>
 	)
 }
 
-const LineChart = ({ data }: { data: SalesTrend[] }) => {
+const SalesAreaChart = ({ data }: { data: any[] }) => {
 	if (!data || data.length === 0) {
 		return <div className="py-8 text-center text-sm text-neutral-500">Tidak ada data</div>
 	}
-	const points = data.map(d => d.sales)
-	const w = 600
-	const h = 180
-	const pad = 16
-	const max = Math.max(...points, 1)
-	const stepX = (w - pad * 2) / Math.max(points.length - 1, 1)
-	const toY = (v: number) => h - pad - (v / max) * (h - pad * 2)
-	const d = points.map((p, i) => `${pad + i * stepX},${toY(p)}`).join(" ")
+	
+	// Transform data for Recharts with null checks
+	const chartData = data.filter(item => item && item.date !== undefined).map(item => {
+		const dateObj = new Date(item.date)
+		const formattedDate = dateObj.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })
+		return {
+			date: formattedDate,
+			penjualan: Number(item.totalQuantity || item.sales || 0)
+		}
+	})
+	
 	return (
-		<div className="relative">
-			<svg viewBox={`0 0 ${w} ${h}`} className="h-44 w-full">
+		<ResponsiveContainer width="100%" height={180}>
+			<AreaChart data={chartData}>
 				<defs>
-					<linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-						<stop offset="0%" stopColor="#ef4444" stopOpacity="0.25" />
-						<stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
+					<linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+						<stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+						<stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
 					</linearGradient>
 				</defs>
-				<polyline fill="none" stroke="#ef4444" strokeWidth="2" points={d} />
-				<polygon fill="url(#grad)" points={`${pad},${h - pad} ${d} ${w - pad},${h - pad}`} />
-				{points.map((p, i) => (
-					<circle key={i} cx={pad + i * stepX} cy={toY(p)} r="3" fill="#ef4444">
-						<title>{data[i].date}: {p} penjualan</title>
-					</circle>
-				))}
-			</svg>
-		</div>
+				<CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+				<XAxis 
+					dataKey="date" 
+					tick={{ fontSize: 10, fill: '#737373' }}
+					axisLine={{ stroke: '#e5e5e5' }}
+				/>
+				<YAxis 
+					tick={{ fontSize: 11, fill: '#737373' }}
+					axisLine={{ stroke: '#e5e5e5' }}
+				/>
+				<Tooltip 
+					content={({ active, payload }) => {
+						if (active && payload && payload.length) {
+							return (
+								<div className="rounded-md border border-neutral-200 bg-white p-2 shadow-sm">
+									<p className="text-xs font-medium text-neutral-900">{payload[0].payload.date}</p>
+									<p className="text-xs text-neutral-600">{payload[0].value} unit terjual</p>
+								</div>
+							)
+						}
+						return null
+					}}
+				/>
+				<Area 
+					type="monotone" 
+					dataKey="penjualan" 
+					stroke="#ef4444" 
+					strokeWidth={2}
+					fillOpacity={1} 
+					fill="url(#colorSales)" 
+				/>
+			</AreaChart>
+		</ResponsiveContainer>
 	)
 }
 
@@ -99,8 +151,8 @@ const AdminDashboard = () => {
 	const [loadingLowStock, setLoadingLowStock] = useState(true)
 	const [lowStockPage, setLowStockPage] = useState(1)
 	const [period, setPeriod] = useState<'daily' | '30days'>('daily')
-	const [bestSelling, setBestSelling] = useState<BestSellingProduct[]>([])
-	const [salesTrend, setSalesTrend] = useState<SalesTrend[]>([])
+	const [bestSelling, setBestSelling] = useState<any[]>([])
+	const [salesTrend, setSalesTrend] = useState<any[]>([])
 	const [loadingCharts, setLoadingCharts] = useState(true)
 	const LOW_STOCK_PAGE_SIZE = 10
 
@@ -128,6 +180,8 @@ const AdminDashboard = () => {
 					: dashboardService.getBestSellingProduct30Days(),
 				dashboardService.getSalesTrend30Days()
 			])
+			console.log('Best Selling Data:', bestSellingData)
+			console.log('Trend Data:', trendData)
 			setBestSelling(bestSellingData)
 			setSalesTrend(trendData)
 		} catch (err) {
@@ -301,7 +355,7 @@ const AdminDashboard = () => {
 					{loadingCharts ? (
 						<div className="py-8 text-center text-sm text-neutral-500">Memuat...</div>
 					) : (
-						<BarChart data={bestSelling} />
+						<ProductBarChart data={bestSelling} />
 					)}
 					</div>
 				</div>
@@ -309,7 +363,9 @@ const AdminDashboard = () => {
 				{/* Tren Penjualan */}
 				<div className="mb-6 rounded-md border border-neutral-200 bg-white">
 					<div className="flex items-center justify-between px-4 py-3">
-					<div className="text-sm font-semibold text-neutral-900">Tren Penjualan (30 Hari)</div>
+					<div className="text-sm font-semibold text-neutral-900">
+						Tren Penjualan {period === 'daily' ? '(Hari Ini)' : '(30 Hari)'}
+					</div>
 					<button onClick={handleRefresh} className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100" aria-label="Refresh">
 						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 							<polyline points="23 4 23 10 17 10" />
@@ -323,7 +379,7 @@ const AdminDashboard = () => {
 					{loadingCharts ? (
 						<div className="py-8 text-center text-sm text-neutral-500">Memuat...</div>
 					) : (
-						<LineChart data={salesTrend} />
+						<SalesAreaChart data={salesTrend} />
 					)}
 					</div>
 				</div>

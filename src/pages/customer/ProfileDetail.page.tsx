@@ -283,28 +283,6 @@ setErrorMessage(err?.message || 'Gagal menyimpan profil')
 								<Card>
 									<h2 className="mb-4 text-base font-semibold text-neutral-900">Informasi Profil</h2>
 									<div className="space-y-4">
-										{/* Profile Picture */}
-										<div className="flex items-center gap-4">
-											<div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-neutral-200 bg-neutral-50">
-												<svg
-													width="32"
-													height="32"
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													strokeWidth="2"
-													className="text-neutral-400"
-												>
-													<path d="M20 21a8 8 0 0 0-16 0" />
-													<circle cx="12" cy="7" r="4" />
-												</svg>
-											</div>
-											<div>
-												<div className="mb-1 text-xs font-medium text-neutral-700">Ubah Foto</div>
-												<button className="text-xs text-blue-600 hover:underline">Upload Foto</button>
-											</div>
-										</div>
-
 										{/* Form Fields */}
 										<div>
 											<Input

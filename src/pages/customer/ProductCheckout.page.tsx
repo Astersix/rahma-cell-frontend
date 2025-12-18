@@ -322,7 +322,7 @@ const ProductCheckoutPage = () => {
 				open={showSuccessPopup}
 				onClose={() => setShowSuccessPopup(false)}
 				icon="success"
-				title="Pembayaran berhasil"
+				title="Pesanan berhasil dibuat!"
 				description="Silakan cek pesanan Anda untuk melihat status pengiriman"
 				primaryButton={{
 					label: 'Lihat Pesanan',

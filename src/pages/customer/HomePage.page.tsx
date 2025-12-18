@@ -30,7 +30,11 @@ const HomePage = () => {
 			setLoadingProducts(true)
 			setErrorProducts(null)
 			try {
-				const res: any = await getAllProduct({ page, limit: PAGE_SIZE }, token || undefined)
+				const params: Record<string, unknown> = { page, limit: PAGE_SIZE }
+				if (category !== 'all') {
+					params.category_id = category
+				}
+				const res: any = await getAllProduct(params, token || undefined)
 				const list = (res.data || []).map((p: any) => ({
 					...p,
 					id: String(p.id ?? p.product_id ?? p.productId ?? p.ulid ?? p.uid ?? ''),
@@ -76,7 +80,7 @@ const HomePage = () => {
 			}
 		}
 		fetchProducts()
-	}, [page, token])
+	}, [page, category, token])
 
 	useEffect(() => {
 		async function fetchCategories() {
@@ -102,12 +106,7 @@ const HomePage = () => {
 	const filtered = useMemo(() => {
 		let result = products
 		
-		// Filter by category
-		if (category !== 'all') {
-			result = result.filter(p => p.category_id === category)
-		}
-		
-		// Filter by search query
+		// Filter by search query (category filtering now handled by API)
 		if (searchQuery.trim()) {
 			const query = searchQuery.toLowerCase()
 			result = result.filter(p => 
@@ -117,7 +116,7 @@ const HomePage = () => {
 		}
 		
 		return result
-	}, [category, products, searchQuery])
+	}, [products, searchQuery])
 
 		return (
 		<CustomerLayout>
@@ -127,7 +126,10 @@ const HomePage = () => {
 						<ProductCategory
 							categories={categories}
 							value={category}
-							onChange={setCategory}
+							onChange={(cat) => {
+								setCategory(cat)
+								setPage(1)
+							}}
 						/>
 						{loadingCategories && <p className="mt-2 text-xs text-neutral-500">Memuat kategori...</p>}
 						{errorCategories && <p className="mt-2 text-xs text-red-600">{errorCategories}</p>}
@@ -143,7 +145,6 @@ const HomePage = () => {
 									: 'Temukan gadget impian Anda dengan harga terbaik'}
 							</p>
 						</div>
-						{loadingProducts && <p className="text-sm text-neutral-500">Memuat produk...</p>}
 						{errorProducts && <p className="text-sm text-red-600">{errorProducts}</p>}
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
 							{filtered.map((product: any) => {
@@ -188,22 +189,23 @@ const HomePage = () => {
 								onClick={() => setPage(p => Math.max(1, p - 1))}
 								disabled={page === 1 || loadingProducts}
 							/>
-								{Array.from({ length: Math.max(1, totalPages) }).map((_, idx) => {
-								const pnum = idx + 1
-								const active = pnum === page
-								return (
-									<button
-										key={pnum}
-										onClick={() => setPage(pnum)}
-										className={active
-											? 'h-8 w-8 rounded-md bg-black text-white'
-											: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
-										disabled={loadingProducts}
-									>
-										{pnum}
-									</button>
-								)
-							})}
+								{[page - 1, page, page + 1]
+									.filter(pnum => pnum >= 1 && pnum <= totalPages)
+									.map((pnum) => {
+										const active = pnum === page
+										return (
+											<button
+												key={pnum}
+												onClick={() => setPage(pnum)}
+												className={active
+													? 'h-8 w-8 rounded-md bg-black text-white'
+													: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
+												disabled={loadingProducts}
+											>
+												{pnum}
+											</button>
+										)
+									})}
 							<ButtonIcon
 								aria-label="Next"
 								icon="arrow-right"

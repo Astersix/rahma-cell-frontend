@@ -191,6 +191,7 @@ const NotificationPage = () => {
 													timestamp={formatTimestamp(notif.created_at)}
 													badge={badge}
 													isActive={activeId === notif.id}
+													isRead={notif.is_read}
 													onClick={() => handleNotificationClick(notif)}
 												/>
 												{idx < group.items.length - 1 && (
