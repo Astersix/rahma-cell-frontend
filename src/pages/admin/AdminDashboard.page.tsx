@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from "react"
-import AdminLayout from "../../layouts/AdminLayout"
-import { dashboardService, type DashboardStats, type BestSellingProduct, type SalesTrend } from "../../services/dashboard.service"
-import { getLowStockProducts, type LowStockItem } from "../../services/product.service"
-import ButtonIcon from "../../components/ui/ButtonIcon"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts'
+import { useEffect, useState, useCallback } from 'react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { CubeIcon } from '@heroicons/react/24/outline'
+import AdminLayout from '../../layouts/AdminLayout'
+import ButtonIcon from '../../components/ui/ButtonIcon'
+import { dashboardService, type DashboardStats } from '../../services/dashboard.service'
+import { getLowStockProducts, type LowStockItem } from '../../services/product.service'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
 
@@ -418,7 +419,7 @@ const AdminDashboard = () => {
 													className="h-full w-full object-cover"
 												/>
 											) : (
-												<span className="text-neutral-500">📦</span>
+												<CubeIcon className="w-5 h-5 text-neutral-500" />
 											)}
 										</div>
 										<div className="min-w-0">
@@ -447,19 +448,19 @@ const AdminDashboard = () => {
 									className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100"
 									onClick={() => setLowStockPage(p => Math.max(1, p - 1))}
 								/>
-								{Array.from({ length: totalLowStockPages }).map((_, idx) => {
-									const pageNum = idx + 1
+							{[lowStockPage - 1, lowStockPage, lowStockPage + 1]
+								.filter(pnum => pnum >= 1 && pnum <= totalLowStockPages)
+								.map((pnum) => {
+									const active = pnum === lowStockPage
 									return (
 										<button
-											key={pageNum}
-											onClick={() => setLowStockPage(pageNum)}
-											className={`h-8 w-8 rounded-md text-xs font-medium transition-colors ${
-												pageNum === lowStockPage
-													? 'bg-neutral-900 text-white'
-													: 'text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100'
-											}`}
+											key={pnum}
+											onClick={() => setLowStockPage(pnum)}
+											className={active
+												? 'h-8 w-8 rounded-md bg-red-600 text-white'
+												: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
 										>
-											{pageNum}
+											{pnum}
 										</button>
 									)
 								})}

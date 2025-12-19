@@ -1,6 +1,5 @@
-import * as React from "react"
-
-import { cn } from "../../utils/cn"
+import * as React from 'react'
+import { cn } from '../../utils/cn'
 
 const Chart = React.forwardRef<
   HTMLDivElement,
@@ -8,10 +7,10 @@ const Chart = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("", className)}
+    className={cn('', className)}
     {...props}
   />
 ))
-Chart.displayName = "Chart"
+Chart.displayName = 'Chart'
 
 export { Chart }

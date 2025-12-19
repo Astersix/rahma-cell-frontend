@@ -262,7 +262,7 @@ setErrorMessage(err?.message || 'Gagal menyimpan profil')
 
 	return (
 		<CustomerLayout>
-			<div className="mx-auto max-w-7xl">
+			<div className="mx-auto max-w-7xl min-h-screen">
 				<div className="grid gap-6 md:grid-cols-[200px_1fr]">
 					<Sidebar active="akun" onNavigate={navigate} onLogoutClick={handleLogoutClick} />
 
@@ -296,8 +296,16 @@ setErrorMessage(err?.message || 'Gagal menyimpan profil')
 											<Input
 												label="Nomor Telepon"
 												value={phone}
-												onChange={(e) => setPhone(e.target.value)}
-												placeholder="Masukkan nomor telepon"
+											onChange={(e) => {
+												const value = e.target.value
+												// Only allow numbers
+												const numericValue = value.replace(/\D/g, '')
+												setPhone(numericValue)
+											}}
+											placeholder="Masukkan nomor telepon"
+											type="tel"
+											inputMode="numeric"
+											pattern="[0-9]*"
 											/>
 										</div>
 										<div>
@@ -414,14 +422,14 @@ setErrorMessage(err?.message || 'Gagal menyimpan profil')
 				title="Apakah Anda yakin ingin keluar?"
 				description="Tindakan ini tidak dapat dibatalkan"
 				primaryButton={{
-					label: 'Kembali',
+					label: 'Keluar',
 					variant: 'filled',
-					onClick: handleCancelLogout,
+					onClick: handleConfirmLogout,
 				}}
 				secondaryButton={{
-					label: 'Keluar',
+					label: 'Kembali',
 					variant: 'outlined',
-					onClick: handleConfirmLogout,
+					onClick: handleCancelLogout,
 				}}
 			/>
 
@@ -432,14 +440,14 @@ setErrorMessage(err?.message || 'Gagal menyimpan profil')
 				title="Apakah Anda yakin ingin menyimpan perubahan?"
 				description="Tindakan ini tidak dapat dibatalkan"
 				primaryButton={{
-					label: 'Kembali',
+					label: 'Simpan',
 					variant: 'filled',
-					onClick: handleCancelSave,
+					onClick: handleConfirmSave,
 				}}
 				secondaryButton={{
-					label: 'Simpan',
+					label: 'Kembali',
 					variant: 'outlined',
-					onClick: handleConfirmSave,
+					onClick: handleCancelSave,
 				}}
 			/>
 
@@ -463,21 +471,21 @@ setErrorMessage(err?.message || 'Gagal menyimpan profil')
 				title="Hapus Alamat?"
 				description="Alamat yang dihapus tidak dapat dikembalikan"
 				primaryButton={{
-					label: 'Batal',
+					label: deleting ? 'Menghapus...' : 'Hapus',
 					variant: 'filled',
-					onClick: handleCancelDelete,
+					onClick: handleConfirmDelete,
 				}}
 				secondaryButton={{
-					label: deleting ? 'Menghapus...' : 'Hapus',
+					label: 'Batal',
 					variant: 'outlined',
-					onClick: handleConfirmDelete,
+					onClick: handleCancelDelete,
 				}}
 			/>
 
 			{showSuccessAlert && (
 				<AlertMessage
 					variant="success"
-					message="Profil Anda telah berhasil diperbarui"
+					message="Perubahan berhasil disimpan"
 					onClose={() => setShowSuccessAlert(false)}
 					duration={3000}
 				/>

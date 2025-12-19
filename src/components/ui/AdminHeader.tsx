@@ -1,3 +1,9 @@
+import { useEffect, useState } from 'react'
+import { useAuthStore } from '../../store/auth.store'
+import { useNavigate } from 'react-router-dom'
+import { notificationService } from '../../services/notification.service'
+import PopupModal from './PopupModal'
+
 export interface AdminHeaderProps {
 	className?: string
 	onLogout?: () => void
@@ -7,15 +13,11 @@ function cn(...parts: Array<string | false | null | undefined>) {
 	return parts.filter(Boolean).join(' ')
 }
 
-import { useEffect, useState } from 'react'
-import { useAuthStore } from '../../store/auth.store'
-import { useNavigate } from 'react-router-dom'
-import { notificationService } from '../../services/notification.service'
-
 const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 	const { logout, token } = useAuthStore()
 	const navigate = useNavigate()
 	const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
+	const [showLogoutModal, setShowLogoutModal] = useState(false)
 
 	useEffect(() => {
 		async function checkUnreadNotifications() {
@@ -35,6 +37,11 @@ const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 	}, [token])
 
 	function handleLogout() {
+		setShowLogoutModal(true)
+	}
+
+	function handleConfirmLogout() {
+		setShowLogoutModal(false)
 		if (onLogout) {
 			onLogout()
 			return
@@ -42,7 +49,12 @@ const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 		logout()
 		navigate('/landing')
 	}
+
+	function handleCancelLogout() {
+		setShowLogoutModal(false)
+	}
 	return (
+		<>
 		<header className={cn('sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/95 backdrop-blur supports-backdrop-filter:bg-white/90', className)}>
 			<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
 				{/* Brand */}
@@ -87,6 +99,25 @@ const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 				</div>
 			</div>
 		</header>
+
+		<PopupModal
+			open={showLogoutModal}
+			onClose={handleCancelLogout}
+			icon="warning"
+			title="Apakah Anda yakin ingin keluar?"
+			description="Tindakan ini tidak dapat dibatalkan"
+			primaryButton={{
+				label: 'Keluar',
+				variant: 'filled',
+				onClick: handleConfirmLogout,
+			}}
+			secondaryButton={{
+				label: 'Kembali',
+				variant: 'outlined',
+				onClick: handleCancelLogout,
+			}}
+		/>
+		</>
 	)
 }
 

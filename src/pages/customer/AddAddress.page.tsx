@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ArrowLongLeftIcon } from '@heroicons/react/24/outline'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
@@ -97,6 +98,11 @@ const AddAddressPage = () => {
 	const [address, setAddress] = useState('')
 	const [isDefault, setIsDefault] = useState(false)
 
+	// Scroll to top when page loads
+	useEffect(() => {
+		window.scrollTo(0, 0)
+	}, [])
+
 	function handleLogoutClick() {
 		setShowLogoutModal(true)
 	}
@@ -168,26 +174,17 @@ const AddAddressPage = () => {
 
 	return (
 		<CustomerLayout>
-			<div className="mx-auto max-w-7xl">
+			<div className="mx-auto max-w-7xl min-h-screen">
 				<div className="grid gap-6 md:grid-cols-[200px_1fr]">
 					<Sidebar active="akun" onNavigate={navigate} onLogoutClick={handleLogoutClick} />
-
 					<div>
-						<div className="mb-6 flex items-center gap-2">
-							<button
-								type="button"
-								onClick={() => navigate('/profile')}
-								className="text-neutral-600 hover:text-neutral-800"
-								aria-label="Kembali"
-							>
-								←
+						<div className="flex items-center gap-2">
+							<button className="text-neutral-600 hover:text-neutral-800" onClick={() => navigate('/profile')} aria-label="Kembali">
+								<ArrowLongLeftIcon className="w-6 h-6" />
 							</button>
-							<div>
-								<h1 className="text-2xl font-semibold text-neutral-900">Tambah Alamat</h1>
-								<p className="text-sm text-neutral-600">Lengkapi detail alamat pengiriman</p>
-							</div>
+							<h1 className="text-2xl font-semibold text-black">Detail Produk</h1>
 						</div>
-
+						<p className="text-sm pb-6 text-neutral-600">Lengkapi detail alamat pengiriman</p>
 						<div className="space-y-6">
 							<Card>
 								<div className="space-y-4">
@@ -203,8 +200,14 @@ const AddAddressPage = () => {
 										<Input
 											label="Nomor Telepon*"
 											value={phone}
-											onChange={(e) => setPhone(e.target.value)}
+											onChange={(e) => {
+												const value = e.target.value.replace(/\D/g, '')
+												setPhone(value)
+											}}
 											placeholder="0819-2345-6789"
+											type="tel"
+											inputMode="numeric"
+											pattern="[0-9]*"
 										/>
 									</div>
 									<div>
@@ -286,14 +289,14 @@ const AddAddressPage = () => {
 				title="Apakah Anda yakin ingin keluar?"
 				description="Tindakan ini tidak dapat dibatalkan"
 				primaryButton={{
-					label: 'Kembali',
+					label: 'Keluar',
 					variant: 'filled',
-					onClick: handleCancelLogout,
+					onClick: handleConfirmLogout,
 				}}
 				secondaryButton={{
-					label: 'Keluar',
+					label: 'Kembali',
 					variant: 'outlined',
-					onClick: handleConfirmLogout,
+					onClick: handleCancelLogout,
 				}}
 			/>
 

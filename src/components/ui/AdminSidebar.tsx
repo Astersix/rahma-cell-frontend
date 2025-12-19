@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { Squares2X2Icon, CubeIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
 
 export interface AdminSidebarProps {
 	className?: string
@@ -18,27 +19,11 @@ const items = [
 const Icon = ({ name }: { name: string }) => {
 	switch (name) {
 		case 'dashboard':
-			return (
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<path d="M3 13h8V3H3v10z" />
-					<path d="M13 21h8V8h-8v13z" />
-				</svg>
-			)
+			return <Squares2X2Icon className="w-4 h-4" />
 		case 'box':
-			return (
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-					<path d="M3.3 7l8.7 5 8.7-5" />
-					<path d="M12 22V12" />
-				</svg>
-			)
+			return <CubeIcon className="w-4 h-4" />
 		case 'file':
-			return (
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-					<path d="M14 2v6h6" />
-				</svg>
-			)
+			return <DocumentTextIcon className="w-4 h-4" />
 		default:
 			return null
 	}

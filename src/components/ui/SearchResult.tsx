@@ -33,13 +33,10 @@ const SearchResult = ({ query, onClose, variant = 'light', onNavigate }: SearchR
 		const timer = setTimeout(async () => {
 			setLoading(true)
 			try {
-				const res = await getAllProduct({ page: 1, limit: 10 })
+				const res = await getAllProduct({ page: 1, limit: 10, search: query })
 				if (cancelled) return
 				
-				const filtered = (res.data || []).filter(p => 
-					p.name.toLowerCase().includes(query.toLowerCase()) ||
-					p.description?.toLowerCase().includes(query.toLowerCase())
-				)
+				const filtered = res.data || []
 
 				// Fetch thumbnails for filtered products
 				const withThumbs = await Promise.all(

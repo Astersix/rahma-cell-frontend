@@ -198,7 +198,7 @@ const OrdersPage = () => {
                       key={pnum}
                       onClick={() => setPage(pnum)}
                       className={active
-                        ? 'h-8 w-8 rounded-md bg-black text-white'
+                        ? 'h-8 w-8 rounded-md bg-red-600 text-white'
                         : 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
                       disabled={loading}
                     >

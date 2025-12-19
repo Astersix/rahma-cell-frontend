@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLongLeftIcon, PhotoIcon, TrashIcon } from '@heroicons/react/24/outline'
 import AdminLayout from '../../layouts/AdminLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
+import AlertMessage from '../../components/ui/AlertMessage'
 import { createProduct, type CreateProductDTO } from '../../services/product.service'
 import { uploadTempImages, finalizeImages, deleteTempImage } from '../../services/image.service'
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
-import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../services/api.service'
 
 const AdminAddProductPage = () => {
@@ -23,6 +25,7 @@ const AdminAddProductPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false)
   const [productThumbnail, setProductThumbnail] = useState<{ variantIdx: number; imageIdx: number }>({ variantIdx: 0, imageIdx: 0 })
   const navigate = useNavigate()
   const { token } = useAuthStore()
@@ -118,7 +121,14 @@ const AdminAddProductPage = () => {
       setSuccess('Produk berhasil dibuat')
       navigate('/admin/products')
     } catch (err: any) {
-      setError(err?.message || 'Gagal membuat produk')
+      const errorMsg = err?.message || 'Gagal membuat produk'
+      // Check if error is about duplicate product name
+      if (errorMsg.toLowerCase().includes('sudah ada') || errorMsg.toLowerCase().includes('already exists') || errorMsg.toLowerCase().includes('duplicate')) {
+        setShowDuplicateAlert(true)
+        setError(null)
+      } else {
+        setError(errorMsg)
+      }
     } finally {
       setLoading(false)
     }
@@ -197,12 +207,20 @@ const AdminAddProductPage = () => {
 
   return (
     <AdminLayout sidebarActive="products">
-      <div className="mx-auto max-w-4xl">
-        <div className="flex gap-1 items-center mb-2">
-          <button className="inline-flex items-center justify-center h-8 hover:text-neutral-600 text-2xl font-semibold text-black"
-            onClick={() => navigate('/admin/products')}>
-            &larr; Tambah Produk
+      {showDuplicateAlert && (
+        <AlertMessage
+          variant="error"
+          message="Produk dengan nama tersebut sudah ada. Silakan gunakan nama yang berbeda."
+          onClose={() => setShowDuplicateAlert(false)}
+          duration={5000}
+        />
+      )}
+      <div className="mx-auto max-w-full min-h-screen">
+        <div className="mb-2 flex items-center gap-2">
+          <button className="text-neutral-600 hover:text-neutral-800" onClick={() => navigate('/admin/products')} aria-label="Kembali">
+            <ArrowLongLeftIcon className="w-6 h-6" />
           </button>
+          <h1 className="text-2xl font-semibold text-black">Tambah Produk</h1>
         </div>
         <p className="mb-6 text-sm text-neutral-600">Masukkan informasi lengkap untuk menambahkan produk baru ke katalog.</p>
 
@@ -250,7 +268,9 @@ const AdminAddProductPage = () => {
                     }}
                     onClick={() => document.getElementById(`file-${vi}`)?.click()}
                   >
-                    <div className="mb-2 rounded bg-neutral-200 p-3 text-neutral-600">🖼️</div>
+                    <div className="mb-2 rounded bg-neutral-200 p-3 text-neutral-600">
+                      <PhotoIcon className="w-8 h-8" />
+                    </div>
                     <div className="text-sm">Drag & drop gambar di sini</div>
                     <div className="text-xs">atau</div>
                     <div className="mt-2 rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white">Pilih file</div>
@@ -274,7 +294,9 @@ const AdminAddProductPage = () => {
                             />
                             Thumbnail Utama
                           </label>
-                          <button type="button" onClick={() => removeImage(vi)} aria-label="Hapus" className="text-neutral-500 hover:text-red-600">🗑️</button>
+                          <button type="button" onClick={() => removeImage(vi)} aria-label="Hapus" className="text-neutral-500 hover:text-red-600">
+                            <TrashIcon className="w-5 h-5" />
+                          </button>
                         </div>
                       </div>
                     </div>

@@ -1,14 +1,13 @@
-import ButtonIcon from './ButtonIcon'
 import type { ReactNode } from 'react'
+import { Bars3Icon } from '@heroicons/react/24/outline'
+import ButtonIcon from './ButtonIcon'
+import { cn } from '../../utils/cn'
+
 type NavbarVariant = 'dark' | 'light'
 
 interface NavbarProps {
 	variant?: NavbarVariant
 	rightSlot?: ReactNode
-}
-
-function cn(...parts: Array<string | false | null | undefined>) {
-	return parts.filter(Boolean).join(' ')
 }
 
 const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
@@ -41,13 +40,7 @@ const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
 						aria-label="Open Menu"
 						variant="light"
 						className="h-9 w-9 p-0 border border-neutral-200"
-						icon={
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-								<line x1="3" y1="6" x2="21" y2="6"></line>
-								<line x1="3" y1="12" x2="21" y2="12"></line>
-								<line x1="3" y1="18" x2="21" y2="18"></line>
-							</svg>
-						}
+						icon={<Bars3Icon className="w-[18px] h-[18px]" />}
 					/>
 				</div>
 			</div>

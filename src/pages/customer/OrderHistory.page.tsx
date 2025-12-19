@@ -107,7 +107,6 @@ const Tabs = ({ active, onChange }: { active: TabKey; onChange: (k: TabKey) => v
 }
 
 const OrderCard = ({
-	orderId,
 	statusTitle,
 	statusNote,
 	statusTone,
@@ -248,7 +247,7 @@ const OrderHistoryPage = () => {
 
 	return (
 		<CustomerLayout>
-			<div className="mx-auto max-w-7xl">
+			<div className="mx-auto max-w-7xl min-h-screen">
 				<div className="grid gap-6 md:grid-cols-[200px_1fr]">
 					{/* Sidebar */}
 					<Sidebar active="pesanan" onNavigate={navigate} onLogoutClick={handleLogoutClick} />
@@ -312,14 +311,14 @@ const OrderHistoryPage = () => {
 				title="Apakah Anda yakin ingin keluar?"
 				description="Tindakan ini tidak dapat dibatalkan"
 				primaryButton={{
-					label: 'Kembali',
+					label: 'Keluar',
 					variant: 'filled',
-					onClick: handleCancelLogout,
+					onClick: handleConfirmLogout,
 				}}
 				secondaryButton={{
-					label: 'Keluar',
+					label: 'Kembali',
 					variant: 'outlined',
-					onClick: handleConfirmLogout,
+					onClick: handleCancelLogout,
 				}}
 			/>
 		</CustomerLayout>

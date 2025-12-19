@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button'
 import PopupModal from '../../components/ui/PopupModal'
 import { orderService } from '../../services/order.service'
 import { paymentService } from '../../services/payment.service'
+import { ArrowLongLeftIcon } from '@heroicons/react/24/outline'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -188,7 +189,6 @@ const OrderDetailPage = () => {
 
 	const items = order?.order_product || []
 	const subtotal = order?.subtotal || 0
-	const deliveryFee = order?.delivery_fee || 0
 	const total = order?.total || 0
 	const paymentMethod = order?.payment_method === 'cod' ? 'COD' : order?.payment_method === 'qris' ? 'QRIS' : '—'
 
@@ -196,19 +196,14 @@ const OrderDetailPage = () => {
 
 	return (
 		<CustomerLayout>
-			<div className="mx-auto max-w-4xl">
+			<div className="mx-auto max-w-4xl min-h-screen">
 				<div className="mb-6 flex items-start justify-between">
 					<div>
-						<div className="mb-2 flex items-center gap-2">
-							<button
-								type="button"
-								onClick={() => navigate('/orders')}
-								className="text-neutral-600 hover:text-neutral-800"
-								aria-label="Kembali"
-							>
-								←
+						<div className="flex items-center gap-2">
+							<button className="text-neutral-600 hover:text-neutral-800" onClick={() => navigate('/orders')} aria-label="Kembali">
+								<ArrowLongLeftIcon className="w-6 h-6" />
 							</button>
-							<h1 className="text-xl font-semibold text-neutral-900">Detail Pesanan</h1>
+							<h1 className="text-2xl font-semibold text-black">Detail Pesanan</h1>
 						</div>
 						<p className="text-sm text-neutral-600">Lihat status dan rincian pesanan Anda</p>
 					</div>
@@ -271,21 +266,21 @@ const OrderDetailPage = () => {
 									return (
 										<div key={idx} className="flex items-start justify-between gap-4 pb-4 border-b border-neutral-100 last:border-0 last:pb-0">
 											<div className="flex items-start gap-3">
-												<div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md bg-neutral-100 text-[10px] text-neutral-500">
-													{imageUrl ? (
-														<img src={imageUrl} alt={productName} className="h-full w-full object-cover" />
-													) : (
-														'Produk'
-													)}
+											<div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md bg-neutral-100 border border-neutral-200 text-[10px] text-neutral-500">
+												{imageUrl ? (
+													<img src={imageUrl} alt={productName.split(' - ')[0]} className="h-full w-full object-cover" />
+												) : (
+													'Produk'
+												)}
+											</div>
+											<div className="text-sm">
+												<div className="mb-1 font-medium text-neutral-800 leading-snug">
+													{productName.split(' - ')[0]}
 												</div>
-												<div className="text-sm">
-													<div className="mb-1 font-medium text-neutral-800 leading-snug">
-														{productName}
-													</div>
-													{variantInfo && (
-														<div className="text-xs text-neutral-600">{variantInfo}</div>
-													)}
-													<div className="mt-1 text-xs text-neutral-600">X{quantity}</div>
+												{variantInfo && (
+													<div className="text-xs text-neutral-600">Varian: {variantInfo}</div>
+												)}
+												<div className="mt-1 text-xs text-neutral-600">x{quantity}</div>
 												</div>
 											</div>
 											<div className="text-sm font-medium text-neutral-800 whitespace-nowrap">
@@ -299,12 +294,6 @@ const OrderDetailPage = () => {
 									<div className="flex items-center justify-between text-sm">
 										<span className="text-neutral-700">Subtotal</span>
 										<span className="font-medium text-neutral-900">{formatIDR(subtotal)}</span>
-									</div>
-									<div className="flex items-center justify-between text-sm">
-										<span className="text-neutral-700">Ongkos Kirim</span>
-										<span className="font-medium text-neutral-900">
-											{deliveryFee > 0 ? formatIDR(deliveryFee) : <span className="text-amber-600 text-xs">Menunggu admin</span>}
-										</span>
 									</div>
 									<div className="flex items-center justify-between pt-2 border-t border-neutral-200">
 										<span className="font-semibold text-neutral-900">Total</span>
@@ -382,14 +371,14 @@ const OrderDetailPage = () => {
 				title="Batalkan Pesanan?"
 				description="Apakah Anda yakin ingin membatalkan pesanan ini? Tindakan ini tidak dapat dibatalkan."
 				primaryButton={{
-					label: 'Tidak, Kembali',
+					label: cancelling ? 'Membatalkan...' : 'Ya, Batalkan',
 					variant: 'filled',
-					onClick: () => setShowCancelModal(false),
+					onClick: handleCancel,
 				}}
 				secondaryButton={{
-					label: cancelling ? 'Membatalkan...' : 'Ya, Batalkan',
+					label: 'Tidak, Kembali',
 					variant: 'outlined',
-					onClick: handleCancel,
+					onClick: () => setShowCancelModal(false),
 				}}
 			/>
 

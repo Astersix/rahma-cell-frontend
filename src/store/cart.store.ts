@@ -45,7 +45,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       set({ items: response.data.items || response.data });
       
     } catch (error) {
-      console.error("Gagal mengambil keranjang:", error);
+      // Error silently handled
     } finally {
       set({ isLoading: false });
     }

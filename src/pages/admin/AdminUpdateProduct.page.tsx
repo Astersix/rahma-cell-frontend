@@ -3,12 +3,15 @@ import AdminLayout from '../../layouts/AdminLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import Input from '../../components/ui/Input'
-import { getProductById, getVariantsByProductId, updateProduct, updateProductVariant, addProductVariant, deleteProductVariant, type UpdateProductDTO, type ProductImage } from '../../services/product.service'
+import AlertMessage from '../../components/ui/AlertMessage'
+import PopupModal from '../../components/ui/PopupModal'
+import { getProductById, getVariantsByProductId, updateProduct, updateProductVariant, addProductVariant, deleteProductVariant, getAllProduct, type UpdateProductDTO, type ProductImage } from '../../services/product.service'
 import { uploadTempImages, finalizeImages, deleteTempImage, deleteFinalImage } from '../../services/image.service'
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth.store'
 import { API_BASE_URL } from '../../services/api.service'
+import { ArrowLongLeftIcon, PhotoIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 const AdminUpdateProductPage = () => {
   const { id } = useParams<{ id: string }>()
@@ -21,9 +24,11 @@ const AdminUpdateProductPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [showDuplicateAlert, setShowDuplicateAlert] = useState(false)
   const [variants, setVariants] = useState<Array<{ id?: string; variant_name?: string; price?: number; stock?: number; images: Array<{ id?: string; image_url?: string; tempName?: string; previewUrl: string; is_thumbnail?: boolean }>; imageDeleted?: boolean }>>([])
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [productThumbnail, setProductThumbnail] = useState<{ variantIdx: number; imageIdx: number } | null>(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   function fileNameFromUrl(url: string) {
     try {
@@ -87,7 +92,35 @@ const AdminUpdateProductPage = () => {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    
+    // Check for duplicate product name before showing confirmation
+    try {
+      setLoading(true)
+      const productsRes = await getAllProduct()
+      const allProducts = productsRes?.data || []
+      
+      // Check if another product (not this one) has the same name
+      const isDuplicate = allProducts.some((p: any) => 
+        p.id !== id && p.name?.toLowerCase().trim() === name.toLowerCase().trim()
+      )
+      
+      if (isDuplicate) {
+        setShowDuplicateAlert(true)
+        setLoading(false)
+        return
+      }
+    } catch (err) {
+      // Continue with update even if check fails
+    } finally {
+      setLoading(false)
+    }
+    
+    setShowConfirmDialog(true)
+  }
+
+  async function confirmUpdate() {
     if (!id) return
+    setShowConfirmDialog(false)
     setError(null)
     setSuccess(null)
     try {
@@ -172,7 +205,15 @@ const AdminUpdateProductPage = () => {
       setSuccess('Perubahan disimpan')
       navigate(`/admin/products/${encodeURIComponent(id)}`)
     } catch (err: any) {
-      setError(err?.message || 'Gagal memperbarui produk')
+      const errorMsg = err?.message || 'Gagal memperbarui produk'
+      // Check if error is about duplicate product name
+      if (errorMsg.toLowerCase().includes('sudah ada') || errorMsg.toLowerCase().includes('already exists') || errorMsg.toLowerCase().includes('duplicate')) {
+        setShowDuplicateAlert(true)
+        setError(null)
+        setShowConfirmDialog(false)
+      } else {
+        setError(errorMsg)
+      }
     } finally {
       setLoading(false)
     }
@@ -198,7 +239,6 @@ const AdminUpdateProductPage = () => {
       } catch (e: any) {
         // Show error but continue with UI update
         setError(e?.message || 'Gagal menghapus gambar dari server')
-        console.error('Delete image error:', e)
       }
     }
     
@@ -234,7 +274,6 @@ const AdminUpdateProductPage = () => {
         }
       } catch (e) {
         // Silent fail - continue with upload
-        console.warn('Failed to delete old image:', e)
       }
     }
     
@@ -283,12 +322,21 @@ const AdminUpdateProductPage = () => {
 
   return (
     <AdminLayout sidebarActive="products">
-      <div className="mx-auto max-w-4xl">
-        <div className="flex gap-1 items-center mb-2">
-          <button className="inline-flex items-center justify-center h-8 hover:text-neutral-600 text-2xl font-semibold text-black"
-            onClick={() => navigate(-1)}>
-            &larr; Edit Produk
+      {showDuplicateAlert && (
+        <AlertMessage
+          variant="error"
+          message="Produk dengan nama tersebut sudah ada. Silakan gunakan nama yang berbeda."
+          onClose={() => setShowDuplicateAlert(false)}
+          duration={5000}
+        />
+      )}
+      <div className="min-h-screen">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-2 flex items-center gap-2">
+          <button className="text-neutral-600 hover:text-neutral-800" onClick={() => navigate(-1)} aria-label="Kembali">
+            <ArrowLongLeftIcon className="w-6 h-6" />
           </button>
+          <h1 className="text-2xl font-semibold text-black">Edit Produk</h1>
         </div>
         <p className="mb-6 text-sm text-neutral-600">Perbarui informasi produk.</p>
 
@@ -377,7 +425,9 @@ const AdminUpdateProductPage = () => {
                         }}
                         onClick={() => document.getElementById(`upd-file-${i}`)?.click()}
                       >
-                        <div className="mb-1 rounded bg-neutral-200 p-2 text-neutral-600">🖼️</div>
+                        <div className="mb-1 rounded bg-neutral-200 p-2 text-neutral-600">
+                          <PhotoIcon className="w-6 h-6" />
+                        </div>
                         <div className="text-xs">Drag & drop gambar di sini</div>
                         <div className="text-[11px]">atau</div>
                         <div className="mt-1 rounded-md bg-red-600 px-3 py-1 text-[11px] font-medium text-white">Pilih file</div>
@@ -402,7 +452,9 @@ const AdminUpdateProductPage = () => {
                                 />
                                 Thumbnail Utama
                               </label>
-                              <button type="button" onClick={() => removeImage(i, 0)} className="text-neutral-500 hover:text-red-600" aria-label="Hapus">🗑️</button>
+                              <button type="button" onClick={() => removeImage(i, 0)} className="text-neutral-500 hover:text-red-600" aria-label="Hapus">
+                                <TrashIcon className="w-5 h-5" />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -427,6 +479,25 @@ const AdminUpdateProductPage = () => {
           </form>
         </Card>
       </div>
+      </div>
+
+      <PopupModal
+        open={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        icon="warning"
+        title="Konfirmasi Perubahan"
+        description="Apakah Anda yakin ingin menyimpan perubahan pada produk ini?"
+        primaryButton={{
+          label: 'Ya, Simpan',
+          variant: 'filled',
+          onClick: confirmUpdate,
+        }}
+        secondaryButton={{
+          label: 'Tidak',
+          variant: 'outlined',
+          onClick: () => setShowConfirmDialog(false),
+        }}
+      />
     </AdminLayout>
   )
 }

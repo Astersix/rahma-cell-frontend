@@ -7,6 +7,7 @@ import { importService, type ImportProductsSummary } from '../../services/import
 import ImportFilePopup from '../../components/ui/ImportFile'
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
+import { MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 
 const ProductsPage = () => {
   const navigate = useNavigate()
@@ -186,10 +187,7 @@ const ProductsPage = () => {
                 className="w-full rounded-md border border-neutral-200 bg-white px-3 py-2 pl-9 text-sm text-black placeholder:text-neutral-400 outline-none focus:shadow-[0_0_0_3px_rgba(0,0,0,0.08)]"
               />
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
+                <MagnifyingGlassIcon className="w-4 h-4" />
               </span>
             </div>
           </div>
@@ -198,7 +196,7 @@ const ProductsPage = () => {
               variant="light"
               size="md"
               icon="csv"
-              className="border border-neutral-300 text-black hover:bg-neutral-50 active:bg-neutral-100"
+              className="border border-red-300 text-red-500 hover:bg-red-50 active:bg-red-100"
               onClick={() => setShowImport(true)}
             >
               Impor CSV
@@ -207,7 +205,7 @@ const ProductsPage = () => {
               variant="dark"
               size="md"
               icon="plus"
-              className="hover:bg-neutral-800 active:bg-neutral-900"
+              className="bg-red-500 text-white hover:bg-red-600 active:bg-red-700"
               onClick={() => navigate('/admin/products/new')}
             >
               Tambah Produk
@@ -228,9 +226,7 @@ const ProductsPage = () => {
                 ))}
               </select>
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
+                <ChevronDownIcon className="w-3.5 h-3.5" />
               </span>
             </div>
             <div className="relative w-48">
@@ -244,9 +240,7 @@ const ProductsPage = () => {
                 <option value="habis">Stok Habis</option>
               </select>
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
+                <ChevronDownIcon className="w-3.5 h-3.5" />
               </span>
             </div>
           </div>
@@ -315,7 +309,7 @@ const ProductsPage = () => {
                       key={pnum}
                       onClick={() => setPage(pnum)}
                       className={active
-                        ? 'h-8 w-8 rounded-md bg-black text-white'
+                        ? 'h-8 w-8 rounded-md bg-red-600 text-white'
                         : 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
                       disabled={loading}
                     >

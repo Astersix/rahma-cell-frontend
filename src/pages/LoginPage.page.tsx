@@ -6,6 +6,7 @@ import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { login } from '../services/auth.service'
 import { useAuthStore } from '../store/auth.store'
+import { ShieldCheckIcon } from '@heroicons/react/24/outline'
 
 const LoginPage = () => {
 	const [showPassword, setShowPassword] = useState(false)
@@ -52,7 +53,7 @@ const LoginPage = () => {
 
 	return (
 		<MainLayout>
-			<section className="mx-auto max-w-3xl pb-10">
+			<section className="mx-auto max-w-3xl pb-10 min-h-screen">
 				<div className="mb-8 text-center">
 					<h1 className="text-2xl font-semibold">Selamat Datang Kembali!</h1>
 					<p className="mt-2 text-sm text-neutral-600">
@@ -119,9 +120,7 @@ const LoginPage = () => {
 						</p>
 						<div className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600">
 							<div className="flex items-center gap-2">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-700">
-									<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-								</svg>
+							<ShieldCheckIcon className="w-4 h-4 text-neutral-700" />
 								<span>Informasi Anda aman dan tidak akan pernah dibagikan kepada pihak ketiga</span>
 							</div>
 						</div>

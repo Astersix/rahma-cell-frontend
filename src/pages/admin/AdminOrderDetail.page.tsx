@@ -4,6 +4,7 @@ import AdminLayout from '../../layouts/AdminLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import { orderService } from '../../services/order.service'
+import { ArrowLongLeftIcon } from '@heroicons/react/24/outline'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -76,14 +77,13 @@ const AdminOrderDetailPage = () => {
 
 	return (
 		<AdminLayout sidebarActive="orders">
-			<div className="mx-auto max-w-full">
+			<div className="mx-auto max-w-5xl min-h-screen">
 				<div className='flex'>
-					<div>
-						<div className="mb-4 flex items-center gap-2">
-						<button onClick={() => navigate(-1)} className="text-neutral-600 hover:text-neutral-800" aria-label="Kembali">←</button>
-						<h1 className="text-2xl font-semibold text-black">Detail Pesanan</h1>
-					</div>
-					<p className="mb-6 text-sm text-neutral-600">Lihat dan ubah status pesanan pelanggan.</p>
+					<div className="flex items-center gap-2">
+						<button className="text-neutral-600 hover:text-neutral-800" onClick={() => navigate(-1)} aria-label="Kembali">
+							<ArrowLongLeftIcon className="w-6 h-6" />
+						</button>
+						<h1 className="text-2xl font-semibold text-black">Detail Produk</h1>
 					</div>
 					<div className='justify-right ml-auto	'>
 						{/* Status badge (top right style per reference) */}
@@ -95,8 +95,8 @@ const AdminOrderDetailPage = () => {
 						</div>
 					</div>
 				</div>
+				<p className="mb-6 text-sm text-neutral-600">Lihat dan ubah status pesanan pelanggan.</p>
 				<div className="mb-3 text-xs text-neutral-600">ID Pesanan: <span className="font-semibold text-neutral-900">#{order?.id || orderId}</span></div>
-
 				<div className="grid gap-6 lg:grid-cols-[1fr_360px]">
 					{/* Left column: Customer info + products table */}
 					<div className="space-y-6">

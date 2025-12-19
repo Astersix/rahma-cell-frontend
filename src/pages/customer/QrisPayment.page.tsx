@@ -202,7 +202,7 @@ const QrisPaymentPage = () => {
 
   return (
     <CustomerLayout>
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-6xl min-h-screen">
         <div className="mb-5">
           <h1 className="text-2xl font-semibold text-black">Pembayaran</h1>
           <p className="text-sm text-neutral-600">Selesaikan pembayaran Anda untuk memproses pesanan.</p>
@@ -267,18 +267,26 @@ const QrisPaymentPage = () => {
             <Card className="p-0">
               <div className="px-4 py-3 text-sm font-semibold text-neutral-900">Ringkasan Pesanan</div>
               <div className="space-y-3 px-4 pb-3">
-                {items.map((it: any, idx: number) => (
-                  <div key={idx} className="flex items-start justify-between gap-3 text-xs">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-[10px] text-neutral-500">Produk</div>
-                      <div className="leading-snug text-neutral-700">
-                        <div className="font-medium text-neutral-800">{it?.name || 'Produk'}</div>
-                        <div className="text-neutral-600">Qty: {Number(it?.quantity) || 1}</div>
+                {items.map((it: any, idx: number) => {
+                  const variant = it.product_variant
+                  const productName = it.name || variant?.variant_name || 'Produk'
+                  // Extract product base name and variant from combined name format "ProductID - VariantName"
+                  const nameParts = productName.split(' - ')
+                  const displayName = nameParts.length > 1 ? nameParts.slice(1).join(' - ') : productName
+                  
+                  return (
+                    <div key={idx} className="flex items-start justify-between gap-3 text-xs">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-[10px] text-neutral-500">Produk</div>
+                        <div className="leading-snug text-neutral-700">
+                          <div className="font-medium text-neutral-800">{displayName}</div>
+                          <div className="text-neutral-600">Qty: {Number(it?.quantity) || 1}</div>
+                        </div>
                       </div>
+                      <div className="text-neutral-800">{formatIDR((Number(it?.price) || 0) * (Number(it?.quantity) || 1))}</div>
                     </div>
-                    <div className="text-neutral-800">{formatIDR((Number(it?.price) || 0) * (Number(it?.quantity) || 1))}</div>
-                  </div>
-                ))}
+                  )
+                })}
 
                 <div className="mt-2 flex items-center justify-between border-t border-neutral-200 pt-3 text-sm">
                   <span className="font-medium text-neutral-800">Subtotal</span>
@@ -343,12 +351,12 @@ const QrisPaymentPage = () => {
         title="Batalkan Pesanan?"
         description="Apakah Anda yakin ingin membatalkan pesanan ini? Tindakan ini tidak dapat dibatalkan."
         primaryButton={{
-          label: 'Tidak, Kembali',
+          label: 'Ya, Batalkan',
           variant: 'filled',
-          onClick: () => setShowCancelModal(false),
+          onClick: handleCancelOrder,
         }}
         secondaryButton={{
-          label: 'Ya, Batalkan',
+          label: 'Tidak, Kembali',
           variant: 'outlined',
           onClick: handleCancelOrder,
         }}

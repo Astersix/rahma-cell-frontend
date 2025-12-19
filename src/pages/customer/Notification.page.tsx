@@ -5,6 +5,7 @@ import NotificationBar from '../../components/ui/NotificationBar'
 import Button from '../../components/ui/Button'
 import { notificationService, type NotificationItem } from '../../services/notification.service'
 import { useAuthStore } from '../../store/auth.store'
+import { CheckIcon, ArrowLongLeftIcon } from '@heroicons/react/24/outline'
 
 function formatTimestamp(isoString?: string): string {
 	if (!isoString) return ''
@@ -123,91 +124,94 @@ const NotificationPage = () => {
 
 	return (
 		<CustomerLayout>
-			<div className="mx-auto max-w-4xl">
-				<div className="mb-6 flex items-center justify-between">
-					<div>
-						<h1 className="text-2xl font-semibold text-neutral-900">Notifikasi</h1>
-						<p className="text-sm text-neutral-600">
-							Lihat semua pemberitahuan terbaru dari pesanan Anda.
-						</p>
-					</div>
+			<div className="mx-auto max-w-5xl min-h-screen">
+				<div className="flex items-center justify-between">
+					<div className="flex items-center gap-2">
+            <button className="text-neutral-600 hover:text-neutral-800" onClick={() => navigate('/')} aria-label="Kembali">
+              <ArrowLongLeftIcon className="w-6 h-6" />
+            </button>
+            <h1 className="text-2xl font-semibold text-black">Notifikasi</h1>
+          </div>
 					<Button
 						className="border border-red-600 text-red-600"
 						onClick={handleMarkAllRead}
 						disabled={notifications.every((n) => n.is_read)}
                         variant='light'
 					>
-						✓ Tandai semua dibaca
+					<CheckIcon className="w-4 h-4 inline mr-1" /> Tandai semua dibaca
 					</Button>
 				</div>
+				<p className="pb-6 text-sm text-neutral-600">
+					Lihat semua pemberitahuan terbaru dari pesanan Anda.
+				</p>
 
 				{loading && <p className="text-sm text-neutral-500">Memuat notifikasi...</p>}
 				{error && <p className="text-sm text-red-600">{error}</p>}
 
 				{!loading && notifications.length === 0 && (
 					<div className="rounded-lg border border-dashed border-neutral-300 p-12 text-center">
-						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
-							<svg
-								width="32"
-								height="32"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								className="text-neutral-400"
-							>
-								<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-								<path d="M10 22h4" />
-							</svg>
+							<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+								<svg
+									width="32"
+									height="32"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									className="text-neutral-400"
+								>
+									<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+									<path d="M10 22h4" />
+								</svg>
+							</div>
+							<h3 className="mb-2 text-base font-semibold text-neutral-900">
+								Belum ada notifikasi
+							</h3>
+							<p className="text-sm text-neutral-600">
+								Notifikasi tentang pesanan Anda akan muncul di sini
+							</p>
 						</div>
-						<h3 className="mb-2 text-base font-semibold text-neutral-900">
-							Belum ada notifikasi
-						</h3>
-						<p className="text-sm text-neutral-600">
-							Notifikasi tentang pesanan Anda akan muncul di sini
-						</p>
-					</div>
 				)}
 
 				{!loading && groupedNotifications.length > 0 && (
 					<div className="space-y-6">
-						{groupedNotifications.map((group) => (
-							<div key={group.label}>
-								<h2 className="mb-3 text-sm font-semibold text-neutral-900">{group.label}</h2>
-								<div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-									{group.items.map((notif, idx) => {
-										// Determine icon based on message content
-										const icon = notif.message?.toLowerCase().includes('shipped') ? 'truck' : 'check'
-										// Determine badge
-										const badge = !notif.is_read ? 'Baru' : undefined
-										// Check if notification has an order ID (either from field or message)
-										const hasOrderId = notif.order_id || notif.message?.match(/#(\w+)/)
+							{groupedNotifications.map((group) => (
+								<div key={group.label}>
+									<h2 className="mb-3 text-sm font-semibold text-neutral-900">{group.label}</h2>
+									<div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+										{group.items.map((notif, idx) => {
+											// Determine icon based on message content
+											const icon = notif.message?.toLowerCase().includes('shipped') ? 'truck' : 'check'
+											// Determine badge
+											const badge = !notif.is_read ? 'Baru' : undefined
+											// Check if notification has an order ID (either from field or message)
+											const hasOrderId = notif.order_id || notif.message?.match(/#(\w+)/)
 
-										return (
-											<div key={notif.id || idx}>
-												<NotificationBar
-													icon={icon}
-													title={notif.title || 'Notifikasi'}
-													message={notif.message || ''}
-													action={hasOrderId ? 'Lihat Pesanan' : undefined}
-													timestamp={formatTimestamp(notif.created_at)}
-													badge={badge}
-													isActive={activeId === notif.id}
-													isRead={notif.is_read}
-													onClick={() => handleNotificationClick(notif)}
-													onAction={() => handleViewOrder(notif)}
-												/>
-												{idx < group.items.length - 1 && (
-													<div className="border-t border-neutral-100" />
-												)}
-											</div>
-										)
-									})}
+											return (
+												<div key={notif.id || idx}>
+													<NotificationBar
+														icon={icon}
+														title={notif.title || 'Notifikasi'}
+														message={notif.message || ''}
+														action={hasOrderId ? 'Lihat Pesanan' : undefined}
+														timestamp={formatTimestamp(notif.created_at)}
+														badge={badge}
+														isActive={activeId === notif.id}
+														isRead={notif.is_read}
+														onClick={() => handleNotificationClick(notif)}
+														onAction={() => handleViewOrder(notif)}
+													/>
+													{idx < group.items.length - 1 && (
+														<div className="border-t border-neutral-100" />
+													)}
+												</div>
+											)
+										})}
+									</div>
 								</div>
-							</div>
-						))}
+							))}
 					</div>
 				)}
 			</div>

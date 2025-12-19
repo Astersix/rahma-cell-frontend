@@ -51,9 +51,9 @@ const CustomerLayout = ({
         }
         
         // Fetch unread notification count
-        const notifications = await notificationService.getByUser(me.id)
+        const notifications = await notificationService.getMyNotifications()
         if (!cancelled) {
-          const unreadCount = (notifications.data || []).filter(n => !n.is_read).length
+          const unreadCount = notifications.filter((n: { is_read?: boolean }) => !n.is_read).length
           setNotificationCount(unreadCount)
         }
       } catch {

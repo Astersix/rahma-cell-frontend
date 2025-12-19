@@ -1,9 +1,10 @@
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLongLeftIcon } from '@heroicons/react/24/outline'
 import AdminLayout from '../../layouts/AdminLayout'
 import Card from '../../components/ui/Card'
 import Button from '../../components/ui/Button'
 import DeleteProductPopup from '../../components/ui/DeleteProductPopup'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
 import { deleteProductWithVariants, getProductById, getVariantsByProductId, type ProductVariant, predictVariantStock } from '../../services/product.service'
 import { useAuthStore } from '../../store/auth.store'
 import { getCategoryById, getAllCategories } from '../../services/category.service'
@@ -93,12 +94,9 @@ const AdminProductDetailPage = () => {
     setPredictionError(null)
     
     try {
-      console.log(`Fetching prediction for variant: ${selectedVariantId}`)
       const result = await predictVariantStock(selectedVariantId, token || undefined)
-      console.log('Prediction result:', result)
       setPredictionData(result.data)
     } catch (err: any) {
-      console.error('Prediction error:', err)
       const errorMessage = err?.message || 'Gagal mendapatkan prediksi stok'
       
       // Check if it's a connection error
@@ -143,24 +141,23 @@ const AdminProductDetailPage = () => {
 
   return (
     <AdminLayout sidebarActive="products">
-      <div className="mx-auto max-w-4xl">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1 items-center mb-2">
-          <button
-            className="inline-flex items-center justify-center h-8 hover:text-neutral-600 text-2xl font-semibold text-black"
-            onClick={() => navigate('/admin/products')}
-          >
-            &larr; Detail Produk
-          </button>
+      <div className="mx-auto max-w-5xl min-h-screen">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button className="text-neutral-600 hover:text-neutral-800" onClick={() => navigate('/admin/products')} aria-label="Kembali">
+              <ArrowLongLeftIcon className="w-6 h-6" />
+            </button>
+            <h1 className="text-2xl font-semibold text-black">Detail Produk</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={() => navigate(`/admin/products/${encodeURIComponent(id || '')}/edit`)} className="bg-white border text-red-500 border-red-500 hover:bg-red-50 active:bg-red-200"
+            variant='light'>
+              Edit Produk
+            </Button>
+            <Button onClick={() => setShowDelete(true)} className="bg-red-500 hover:bg-red-600 active:bg-red-700 border border-red-300">Hapus Produk</Button>
+          </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <Button onClick={() => navigate(`/admin/products/${encodeURIComponent(id || '')}/edit`)} className="text-black border border-neutral-300 hover:bg-neutral-50">Edit Produk</Button>
-          <Button onClick={() => setShowDelete(true)} className="bg-red-500 hover:bg-red-600 active:bg-red-700 border border-red-300">Hapus Produk</Button>
-        </div>
-        </div>
-
-        <p className="flex mt-1 text-sm text-neutral-600 mb-6">Lihat detail produk dan prediksi kebutuhan stok.</p>
+        <p className="mb-6 text-sm text-neutral-600">Lihat detail produk dan prediksi kebutuhan stok.</p>
 
         {loading && <p className="mb-4 text-sm text-neutral-500">Memuat...</p>}
         

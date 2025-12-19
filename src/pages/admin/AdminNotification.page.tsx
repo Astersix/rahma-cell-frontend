@@ -5,6 +5,7 @@ import NotificationBar from '../../components/ui/NotificationBar'
 import Button from '../../components/ui/Button'
 import { notificationService, type NotificationItem } from '../../services/notification.service'
 import { useAuthStore } from '../../store/auth.store'
+import { CheckIcon, BellIcon } from '@heroicons/react/24/outline'
 
 function formatTimestamp(isoString?: string): string {
 	if (!isoString) return ''
@@ -121,13 +122,15 @@ const AdminNotificationPage = () => {
 
 	return (
 		<AdminLayout>
-			<div className="mx-auto max-w-4xl">
+			<div className="mx-auto max-w-5xl min-h-screen">
 				<div className="mb-6 flex items-center justify-between">
-					<div>
-						<h1 className="text-2xl font-semibold text-neutral-900">Notifikasi</h1>
-						<p className="text-sm text-neutral-600">
-							Lihat semua pemberitahuan terbaru terkait sistem dan pesanan.
-						</p>
+					<div className="flex items-center gap-3">
+						<div>
+							<h1 className="text-2xl font-semibold text-neutral-900">Notifikasi</h1>
+							<p className="text-sm text-neutral-600">
+								Lihat semua pemberitahuan terbaru terkait sistem dan pesanan.
+							</p>
+						</div>
 					</div>
 					<Button
 						className="border border-red-600 text-red-600"
@@ -135,80 +138,65 @@ const AdminNotificationPage = () => {
 						disabled={notifications.every((n) => n.is_read)}
                         variant='light'
 					>
-						✓ Tandai semua dibaca
-					</Button>
+					<CheckIcon className="w-4 h-4 inline mr-1" /> Tandai semua dibaca
+				</Button>
+			</div>
+
+			{loading && <p className="text-sm text-neutral-500">Memuat notifikasi...</p>}
+			{error && <p className="text-sm text-red-600">{error}</p>}
+
+			{!loading && notifications.length === 0 && (
+				<div className="rounded-lg border border-dashed border-neutral-300 p-12 text-center">
+					<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
+						<BellIcon className="w-8 h-8 text-neutral-400" />
+					</div>
+					<h3 className="mb-2 text-lg font-semibold text-neutral-900">Tidak ada notifikasi</h3>
+					<p className="text-sm text-neutral-500">
+						Anda akan melihat pemberitahuan terbaru di sini.
+					</p>
 				</div>
+			)}
 
-				{loading && <p className="text-sm text-neutral-500">Memuat notifikasi...</p>}
-				{error && <p className="text-sm text-red-600">{error}</p>}
+			{!loading && groupedNotifications.length > 0 && (
+				<div className="space-y-6">
+					{groupedNotifications.map((group) => (
+						<div key={group.label}>
+							<h2 className="mb-3 text-sm font-semibold text-neutral-900">{group.label}</h2>
+							<div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+								{group.items.map((notif, idx) => {
+									// Determine icon based on message content
+									const icon = notif.message?.toLowerCase().includes('dikirim') ? 'truck' : 'check'
+									// Determine badge
+									const badge = !notif.is_read ? 'Baru' : undefined
+									// Extract order ID from message if present
+									const orderMatch = notif.message?.match(/#(\w+)/)
+									const orderText = orderMatch ? `Pesanan ${orderMatch[1]}` : null
 
-				{!loading && notifications.length === 0 && (
-					<div className="rounded-lg border border-dashed border-neutral-300 p-12 text-center">
-						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100">
-							<svg
-								width="32"
-								height="32"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								className="text-neutral-400"
-							>
-								<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-								<path d="M10 22h4" />
-							</svg>
-						</div>
-						<h3 className="mb-2 text-base font-semibold text-neutral-900">
-							Belum ada notifikasi
-						</h3>
-						<p className="text-sm text-neutral-600">
-							Notifikasi tentang sistem dan pesanan akan muncul di sini
-						</p>
-					</div>
-				)}
-
-				{!loading && groupedNotifications.length > 0 && (
-					<div className="space-y-6">
-						{groupedNotifications.map((group) => (
-							<div key={group.label}>
-								<h2 className="mb-3 text-sm font-semibold text-neutral-900">{group.label}</h2>
-								<div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-									{group.items.map((notif, idx) => {
-										// Determine icon based on message content
-										const icon = notif.message?.toLowerCase().includes('dikirim') ? 'truck' : 'check'
-										// Determine badge
-										const badge = !notif.is_read ? 'Baru' : undefined
-										// Extract order ID from message if present
-										const orderMatch = notif.message?.match(/#(\w+)/)
-										const orderText = orderMatch ? orderMatch[0] : ''
-
-										return (
-											<div key={notif.id || idx}>
-												<NotificationBar
-													icon={icon}
-													title={notif.title || 'Notifikasi'}
-													message={notif.message || ''}
-													action={orderText ? 'Lihat Pesanan' : undefined}
-													timestamp={formatTimestamp(notif.created_at)}
-													badge={badge}
-													isActive={activeId === notif.id}
-													isRead={notif.is_read}
-													onClick={() => handleNotificationClick(notif)}
-													onAction={orderMatch && orderMatch[1] ? () => handleViewOrder(orderMatch[1]) : undefined}
-												/>
-												{idx < group.items.length - 1 && (
-													<div className="border-t border-neutral-100" />
-												)}
-											</div>
-										)
-									})}
-								</div>
+									return (
+										<div key={notif.id || idx}>
+											<NotificationBar
+												icon={icon}
+												title={notif.title || 'Notifikasi'}
+												message={notif.message || ''}
+												action={orderText ? 'Lihat Pesanan' : undefined}
+												timestamp={formatTimestamp(notif.created_at)}
+												badge={badge}
+												isActive={activeId === notif.id}
+												isRead={notif.is_read}
+												onClick={() => handleNotificationClick(notif)}
+												onAction={orderMatch && orderMatch[1] ? () => handleViewOrder(orderMatch[1]) : undefined}
+											/>
+											{idx < group.items.length - 1 && (
+												<div className="border-t border-neutral-100" />
+											)}
+										</div>
+									)
+								})}
 							</div>
-						))}
-					</div>
-				)}
+						</div>
+					))}
+				</div>
+			)}
 			</div>
 		</AdminLayout>
 	)

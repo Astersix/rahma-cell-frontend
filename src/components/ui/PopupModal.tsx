@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { CheckIcon, XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
 type IconType = 'success' | 'error' | 'warning' | 'none'
 type ButtonVariant = 'filled' | 'outlined' | 'outlined-blue'
@@ -22,27 +23,19 @@ type Props = {
 
 const SuccessIcon = () => (
 	<div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500">
-		<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-			<path d="M20 6L9 17l-5-5" />
-		</svg>
+		<CheckIcon className="w-8 h-8 text-white stroke-3" />
 	</div>
 )
 
 const ErrorIcon = () => (
 	<div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-red-500">
-		<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-			<path d="M18 6L6 18M6 6l12 12" />
-		</svg>
+		<XMarkIcon className="w-8 h-8 text-white stroke-3" />
 	</div>
 )
 
 const WarningIcon = () => (
 	<div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center">
-		<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-			<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-			<line x1="12" y1="9" x2="12" y2="13" />
-			<line x1="12" y1="17" x2="12.01" y2="17" />
-		</svg>
+		<ExclamationTriangleIcon className="w-16 h-16 text-red-500 stroke-[1.5]" />
 	</div>
 )
 
@@ -67,15 +60,16 @@ const PopupModal = ({
 
 	if (!open) return null
 
-	const getButtonClass = (variant: ButtonVariant = 'filled') => {
+	const getButtonClass = (variant: ButtonVariant = 'filled', isPrimary: boolean = false) => {
+		const fontWeight = isPrimary ? 'font-semibold' : 'font-medium'
 		switch (variant) {
 			case 'outlined':
-				return 'rounded-md border border-red-500 bg-white px-6 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors'
+				return `rounded-md border border-red-500 bg-white px-6 py-2.5 text-sm ${fontWeight} text-red-600 hover:bg-red-50 transition-colors`
 			case 'outlined-blue':
-				return 'rounded-md border border-red-500 bg-white px-6 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors'
+				return `rounded-md border border-red-500 bg-white px-6 py-2.5 text-sm ${fontWeight} text-red-600 hover:bg-red-50 transition-colors`
 			case 'filled':
 			default:
-				return 'rounded-md bg-red-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-red-600 transition-colors'
+				return `rounded-md bg-red-500 px-6 py-2.5 text-sm ${fontWeight} text-white hover:bg-red-600 transition-colors`
 		}
 	}
 
@@ -116,7 +110,7 @@ const PopupModal = ({
 				<div className={`flex gap-3 ${secondaryButton ? 'flex-row' : 'justify-center'}`}>
 					{primaryButton && (
 						<button
-							className={secondaryButton ? getButtonClass(primaryButton.variant) + ' flex-1' : getButtonClass(primaryButton.variant)}
+							className={secondaryButton ? getButtonClass(primaryButton.variant, true) + ' flex-1' : getButtonClass(primaryButton.variant, true)}
 							onClick={primaryButton.onClick}
 						>
 							{primaryButton.label}
@@ -124,7 +118,7 @@ const PopupModal = ({
 					)}
 					{secondaryButton && (
 						<button
-							className={getButtonClass(secondaryButton.variant) + ' flex-1'}
+							className={getButtonClass(secondaryButton.variant, false) + ' flex-1'}
 							onClick={secondaryButton.onClick}
 						>
 							{secondaryButton.label}

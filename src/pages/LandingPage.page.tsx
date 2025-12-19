@@ -2,41 +2,33 @@ import Button from "../components/ui/Button"
 import Card from "../components/ui/Card"
 import MainLayout from "../layouts/MainLayout"
 import heroImg from "../assets/hero-img.png"
+import { 
+	DevicePhoneMobileIcon, 
+	ShieldCheckIcon, 
+	BoltIcon, 
+	CpuChipIcon,
+	HomeIcon,
+	PencilIcon
+} from '@heroicons/react/24/outline'
 
 const Icon = ({ name, className = "w-5 h-5" }: { name: 'phone' | 'headphone' | 'bolt' | 'plug' | 'home' | 'pen' | 'shield' | 'support'; className?: string }) => {
 	switch (name) {
 		case 'phone':
-			return (
-				<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
-			)
+			return <DevicePhoneMobileIcon className={className} />
 		case 'headphone':
-			return (
-				<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 18v-3a9 9 0 0 1 18 0v3"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3"/></svg>
-			)
+			return <ShieldCheckIcon className={className} />
 		case 'bolt':
-			return (
-				<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-			)
+			return <BoltIcon className={className} />
 		case 'plug':
-			return (
-				<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-7"/><path d="M7 7h10"/><path d="M7 3v4"/><path d="M17 3v4"/><rect x="7" y="7" width="10" height="9" rx="2"/></svg>
-			)
+			return <CpuChipIcon className={className} />
 		case 'home':
-			return (
-				<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>
-			)
+			return <HomeIcon className={className} />
 		case 'pen':
-			return (
-				<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-			)
+			return <PencilIcon className={className} />
 		case 'shield':
-			return (
-				<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-			)
+			return <ShieldCheckIcon className={className} />
 		case 'support':
-			return (
-				<svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 15s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>
-			)
+			return <ShieldCheckIcon className={className} />
 		default:
 			return null
 	}

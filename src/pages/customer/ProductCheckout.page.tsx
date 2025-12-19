@@ -8,8 +8,8 @@ import { useCartStore } from '../../store/cart.store'
 import { useAuthStore } from '../../store/auth.store'
 import { orderService, type PlaceOrderRequest } from '../../services/order.service'
 import { getMyProfile, type Address } from '../../services/user.service'
-
 import { paymentService } from '../../services/payment.service'
+import { ArrowLongLeftIcon } from '@heroicons/react/24/outline'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -162,7 +162,6 @@ const ProductCheckoutPage = () => {
 					})
 				} catch (qrError: any) {
 					// If QR generation fails, still navigate but let payment page handle it
-					console.error('Failed to initiate QRIS:', qrError)
 					navigate(`/payment/${orderId}`)
 				}
 			} else {
@@ -178,19 +177,14 @@ const ProductCheckoutPage = () => {
 
 	return (
 		<CustomerLayout>
-			<div className="mx-auto max-w-7xl">
-				<div className="mb-5 flex items-center gap-2">
-					<button
-						type="button"
-						onClick={handleBackNavigation}
-						className="text-neutral-600 hover:text-neutral-800"
-						aria-label="Kembali"
-					>
-						←
+			<div className="mx-auto max-w-6xl min-h-screen">
+				<div className="flex items-center gap-2">
+					<button className="text-neutral-600 hover:text-neutral-800" onClick={handleBackNavigation} aria-label="Kembali">
+						<ArrowLongLeftIcon className="w-6 h-6" />
 					</button>
-					<h1 className="text-xl font-semibold text-neutral-900">Checkout / Pembayaran</h1>
+					<h1 className="text-2xl font-semibold text-black">Detail Produk</h1>
 				</div>
-
+				<p className="mb-6 text-sm text-neutral-600">Lengkapi detail di bawah untuk menyelesaikan pesanan Anda.</p>
 				<div className="grid gap-6 md:grid-cols-[1fr_320px]">
 					<div className="space-y-4">
 						<Card className="p-0">

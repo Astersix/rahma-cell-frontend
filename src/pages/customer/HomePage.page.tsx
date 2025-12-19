@@ -1,12 +1,12 @@
+import { useState, useMemo, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import ButtonIcon from '../../components/ui/ButtonIcon'
 import ProductCategory, { type CategoryItem } from '../../components/ui/ProductCategory'
-import { useState, useMemo, useEffect } from 'react'
 import { getAllProduct, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
 import { getAllCategories } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
-import { Link, useSearchParams } from 'react-router-dom'
 
 const PAGE_SIZE = 20
 
@@ -33,8 +33,9 @@ const HomePage = () => {
 				const params: Record<string, unknown> = { page, limit: PAGE_SIZE }
 				if (category !== 'all') {
 					params.category_id = category
-				}
-				const res: any = await getAllProduct(params, token || undefined)
+				}				if (searchQuery.trim()) {
+					params.search = searchQuery
+				}				const res: any = await getAllProduct(params, token || undefined)
 				const list = (res.data || []).map((p: any) => ({
 					...p,
 					id: String(p.id ?? p.product_id ?? p.productId ?? p.ulid ?? p.uid ?? ''),
@@ -80,7 +81,14 @@ const HomePage = () => {
 			}
 		}
 		fetchProducts()
-	}, [page, category, token])
+	}, [page, category, token, searchQuery])
+
+	// Reset to page 1 when search query changes
+	useEffect(() => {
+		if (searchQuery) {
+			setPage(1)
+		}
+	}, [searchQuery])
 
 	useEffect(() => {
 		async function fetchCategories() {
@@ -103,20 +111,8 @@ const HomePage = () => {
 		fetchCategories()
 	}, [isAuthenticated, token])
 
-	const filtered = useMemo(() => {
-		let result = products
-		
-		// Filter by search query (category filtering now handled by API)
-		if (searchQuery.trim()) {
-			const query = searchQuery.toLowerCase()
-			result = result.filter(p => 
-				p.name.toLowerCase().includes(query) ||
-				p.description?.toLowerCase().includes(query)
-			)
-		}
-		
-		return result
-	}, [products, searchQuery])
+	// Backend now handles search, so just use products directly
+	const filtered = useMemo(() => products, [products])
 
 		return (
 		<CustomerLayout>
@@ -198,7 +194,7 @@ const HomePage = () => {
 												key={pnum}
 												onClick={() => setPage(pnum)}
 												className={active
-													? 'h-8 w-8 rounded-md bg-black text-white'
+													? 'h-8 w-8 rounded-md bg-red-500 text-white'
 													: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
 												disabled={loadingProducts}
 											>
