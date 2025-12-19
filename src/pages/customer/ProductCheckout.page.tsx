@@ -8,7 +8,7 @@ import { useCartStore } from '../../store/cart.store'
 import { useAuthStore } from '../../store/auth.store'
 import { orderService, type PlaceOrderRequest } from '../../services/order.service'
 import { getMyProfile, type Address } from '../../services/user.service'
-import { deleteCartItem, getCartByUserId } from '../../services/cart.service'
+
 import { paymentService } from '../../services/payment.service'
 
 function formatIDR(n?: number) {
@@ -27,10 +27,6 @@ const ProductCheckoutPage = () => {
 	const [addresses, setAddresses] = useState<Address[]>([])
 	const [addrLoading, setAddrLoading] = useState(false)
 	const [showSuccessPopup, setShowSuccessPopup] = useState(false)
-	
-	// Get buyNow info from navigation state
-	const isBuyNow = (location.state as any)?.isBuyNow
-	const buyNowVariantId = (location.state as any)?.buyNowVariantId
 
 	useEffect(() => {
 		async function loadAddresses() {
@@ -67,23 +63,8 @@ const ProductCheckoutPage = () => {
 		}
 	}
 
-	// Handle back button cleanup for Buy Now flow
-	async function handleBackNavigation() {
-		if (isBuyNow && buyNowVariantId && token) {
-			try {
-				const profile = await getMyProfile(token)
-				const userId = profile.id
-				const cart = await getCartByUserId(userId, token)
-				const cartItem = cart.cart_product?.find(
-					item => String(item.product_variant_id) === String(buyNowVariantId)
-				)
-				if (cartItem?.id) {
-					await deleteCartItem(userId, String(cartItem.id), token)
-				}
-			} catch (err) {
-				// Silent cleanup error
-			}
-		}
+	// Handle back button navigation (no cleanup needed for direct checkout)
+	function handleBackNavigation() {
 		navigate(-1)
 	}
 
@@ -129,8 +110,9 @@ const ProductCheckoutPage = () => {
 		try {
 			setPlacing(true)
 			// Build backend-compatible payload (snake_case)
-			// Always use 'cart' checkout method since all checkouts flow through the cart
-			const checkout_method: PlaceOrderRequest['checkout_method'] = 'cart'
+			// Use 'direct' for Buy Now, 'cart' for normal cart checkout
+			const checkoutMethodFromState = (location.state as any)?.checkoutMethod
+			const checkout_method: PlaceOrderRequest['checkout_method'] = checkoutMethodFromState === 'direct' ? 'direct' : 'cart'
 			const items = displayItems.map((it: any) => {
 				const pvId = it.variantId || cartItems.find(ci => ci.key === it.key)?.variantId
 				return { product_variant_id: String(pvId || ''), quantity: Number(it.quantity) || 0 }

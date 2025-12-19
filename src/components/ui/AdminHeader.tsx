@@ -7,12 +7,32 @@ function cn(...parts: Array<string | false | null | undefined>) {
 	return parts.filter(Boolean).join(' ')
 }
 
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../store/auth.store'
 import { useNavigate } from 'react-router-dom'
+import { notificationService } from '../../services/notification.service'
 
 const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
-	const { logout } = useAuthStore()
+	const { logout, token } = useAuthStore()
 	const navigate = useNavigate()
+	const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
+
+	useEffect(() => {
+		async function checkUnreadNotifications() {
+			if (!token) return
+			try {
+				const items = await notificationService.getMyNotifications()
+				const hasUnread = Array.isArray(items) && items.some(n => !n.is_read)
+				setHasUnreadNotifications(hasUnread)
+			} catch {
+				// Silent error
+			}
+		}
+		checkUnreadNotifications()
+		// Poll every 30 seconds for new notifications
+		const interval = setInterval(checkUnreadNotifications, 30000)
+		return () => clearInterval(interval)
+	}, [token])
 
 	function handleLogout() {
 		if (onLogout) {
@@ -38,13 +58,18 @@ const AdminHeader = ({ className, onLogout }: AdminHeaderProps) => {
 						type="button"
 						aria-label="Notifications"
 						onClick={() => navigate('/admin/notifications')}
-						className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100"
+						className="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-800 hover:bg-neutral-100"
 					>
 						{/* notification bell icon */}
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 							<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
 							<path d="M10 22h4" />
 						</svg>
+						{hasUnreadNotifications && (
+							<span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-600 ring-2 ring-white">
+								<span className="sr-only">notifikasi belum dibaca</span>
+							</span>
+						)}
 					</button>
 					<button
 						type="button"

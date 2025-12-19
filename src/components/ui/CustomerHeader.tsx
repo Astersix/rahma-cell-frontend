@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/auth.store'
+import { notificationService } from '../../services/notification.service'
 import ProfileOption from './ProfileOption'
 import PopupModal from './PopupModal'
 import SearchResult from './SearchResult'
@@ -41,10 +42,11 @@ const CustomerHeader = ({
 	const [showLogoutModal, setShowLogoutModal] = useState(false)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [showSearchResults, setShowSearchResults] = useState(false)
+	const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
 	const menuRef = useRef<HTMLDivElement | null>(null)
 	const searchRef = useRef<HTMLDivElement | null>(null)
 	const navigate = useNavigate()
-	const { logout } = useAuthStore()
+	const { logout, token } = useAuthStore()
 
 	useEffect(() => {
 		function handleClickOutside(e: MouseEvent) {
@@ -71,6 +73,23 @@ const CustomerHeader = ({
 			document.removeEventListener('keydown', handleEsc)
 		}
 	}, [showLogoutModal, showSearchResults])
+
+	useEffect(() => {
+		async function checkUnreadNotifications() {
+			if (!token) return
+			try {
+				const items = await notificationService.getMyNotifications()
+				const hasUnread = Array.isArray(items) && items.some(n => !n.is_read)
+				setHasUnreadNotifications(hasUnread)
+			} catch {
+				// Silent error
+			}
+		}
+		checkUnreadNotifications()
+		// Poll every 30 seconds for new notifications
+		const interval = setInterval(checkUnreadNotifications, 30000)
+		return () => clearInterval(interval)
+	}, [token])
 
 	function handleLogout() {
 		setShowLogoutModal(true)
@@ -212,9 +231,8 @@ const CustomerHeader = ({
 							<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
 							<path d="M10 22h4" />
 						</svg>
-						{notificationCount > 0 && (
-							<span className="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-medium text-white shadow">
-								{notificationCount}
+						{hasUnreadNotifications && (
+							<span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-600 ring-2 ring-white">
 								<span className="sr-only">notifikasi belum dibaca</span>
 							</span>
 						)}

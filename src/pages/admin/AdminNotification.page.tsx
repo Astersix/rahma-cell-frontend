@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AdminLayout from '../../layouts/AdminLayout'
 import NotificationBar from '../../components/ui/NotificationBar'
 import Button from '../../components/ui/Button'
 import { notificationService, type NotificationItem } from '../../services/notification.service'
-import { getMyProfile } from '../../services/user.service'
 import { useAuthStore } from '../../store/auth.store'
 
 function formatTimestamp(isoString?: string): string {
@@ -60,6 +60,7 @@ function groupNotificationsByDate(notifications: NotificationItem[]) {
 }
 
 const AdminNotificationPage = () => {
+	const navigate = useNavigate()
 	const token = useAuthStore((s) => s.token)
 
 	const [notifications, setNotifications] = useState<NotificationItem[]>([])
@@ -73,12 +74,9 @@ const AdminNotificationPage = () => {
 			try {
 				setLoading(true)
 				setError(null)
-				// Get user profile first to get user ID
-				const profile = await getMyProfile(token)
-				const userId = profile.id
-				const res = await notificationService.getByUser(userId)
-				const items = (res.notif || []) as NotificationItem[]
-				setNotifications(items)
+				// Use new endpoint that automatically gets current user's notifications
+				const items = await notificationService.getMyNotifications()
+				setNotifications(Array.isArray(items) ? items : [])
 			} catch (err: any) {
 				setError(err?.message || 'Gagal memuat notifikasi')
 			} finally {
@@ -105,12 +103,17 @@ const AdminNotificationPage = () => {
 	}
 
 	async function handleMarkAllRead() {
-		const unreadNotifs = notifications.filter((n) => !n.is_read && n.id)
 		try {
-			await Promise.all(unreadNotifs.map((n) => notificationService.markAsRead(n.id!)))
+			await notificationService.markAllAsRead()
 			setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
 		} catch (err) {
 			// Silent error
+		}
+	}
+
+	function handleViewOrder(orderId: string) {
+		if (orderId) {
+			navigate(`/admin/orders/${orderId}`)
 		}
 	}
 
@@ -191,7 +194,9 @@ const AdminNotificationPage = () => {
 													timestamp={formatTimestamp(notif.created_at)}
 													badge={badge}
 													isActive={activeId === notif.id}
+													isRead={notif.is_read}
 													onClick={() => handleNotificationClick(notif)}
+													onAction={orderMatch && orderMatch[1] ? () => handleViewOrder(orderMatch[1]) : undefined}
 												/>
 												{idx < group.items.length - 1 && (
 													<div className="border-t border-neutral-100" />

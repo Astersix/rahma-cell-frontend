@@ -55,6 +55,23 @@ const QrisPaymentPage = () => {
     }
   }
 
+  // Prevent going back to checkout page using browser back button
+  useEffect(() => {
+    // Push a dummy state to history to intercept back navigation
+    window.history.pushState(null, '', window.location.href)
+    
+    const handlePopState = () => {
+      // When user presses back button, redirect to home page instead
+      navigate('/', { replace: true })
+    }
+    
+    window.addEventListener('popstate', handlePopState)
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [navigate])
+
   useEffect(() => {
     let mounted = true
     
