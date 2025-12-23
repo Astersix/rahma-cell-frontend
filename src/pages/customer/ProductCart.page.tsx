@@ -163,7 +163,9 @@ const ProductCartPage = () => {
 										const images = item.product_variant?.product_image || []
 										const thumb = images.find(i => i.is_thumbnail) || images[0]
 										const imageUrl = thumb?.image_url
-										const productName = item.product_variant?.variant_name || 'Produk'
+										const productName = item.product_variant?.product?.name || 'Produk'
+										const variantName = item.product_variant?.variant_name
+										const displayName = variantName ? `${productName} - ${variantName}` : productName
 										const price = Number(item.product_variant?.price) || 0
 										const lineTotal = price * item.quantity
 										const showLoader = loadingImages[item.id]
@@ -179,7 +181,7 @@ const ProductCartPage = () => {
 														/>
 														{imageUrl ? (
 															<div className="relative h-14 w-14 overflow-hidden rounded-md bg-neutral-100">
-																<img src={imageUrl} alt={productName} className="h-full w-full object-cover" />
+																<img src={imageUrl} alt={displayName} className="h-full w-full object-cover" />
 																{showLoader && <div className="absolute inset-0 flex items-center justify-center bg-white/40 text-[10px] text-neutral-500">...</div>}
 															</div>
 														) : (
@@ -188,9 +190,9 @@ const ProductCartPage = () => {
 															</div>
 														)}
 														<div className="space-y-0.5 text-xs">
-															<div className="font-semibold leading-snug text-neutral-800">{productName}</div>
-															{item.product_variant?.variant_name && <div className="text-neutral-600">Varian: {item.product_variant.variant_name}</div>}
-															<div className="text-neutral-500">Garansi: 1 Tahun</div>
+															<div className="font-semibold leading-snug text-neutral-800">{displayName}</div>
+															{variantName && <div className="text-neutral-600">Varian: {variantName}</div>}
+															<div className="text-neutral-500">Stok: {item.product_variant?.stock || 0} pcs </div>
 														</div>
 													</div>
 												</td>
@@ -274,15 +276,21 @@ const ProductCartPage = () => {
 								className="bg-red-600 hover:bg-red-700 active:bg-red-800 focus-visible:ring-red-500"
 								onClick={() => {
 									const selectedList = items.filter(i => selected.includes(i.id))
-									const payload = selectedList.map(it => ({
-										key: it.id,
-										productName: it.product_variant?.variant_name || 'Produk',
-										variantName: it.product_variant?.variant_name,
-										price: Number(it.product_variant?.price) || 0,
-										quantity: it.quantity,
-										imageUrl: it.product_variant?.product_image?.find(i => i.is_thumbnail)?.image_url || it.product_variant?.product_image?.[0]?.image_url,
-										variantId: String(it.product_variant_id || ''),
-									}))
+									const payload = selectedList.map(it => {
+										const productName = it.product_variant?.product?.name || 'Produk'
+										const variantName = it.product_variant?.variant_name
+										const displayName = variantName ? `${productName} - ${variantName}` : productName
+										
+										return {
+											key: it.id,
+											productName: displayName,
+											variantName: variantName,
+											price: Number(it.product_variant?.price) || 0,
+											quantity: it.quantity,
+											imageUrl: it.product_variant?.product_image?.find(i => i.is_thumbnail)?.image_url || it.product_variant?.product_image?.[0]?.image_url,
+											variantId: String(it.product_variant_id || ''),
+										}
+									})
 									navigate('/checkout', { state: { selectedKeys: selected, selectedItems: payload } })
 								}}
 								disabled={selectedItems.length === 0}

@@ -5,13 +5,37 @@ import { cn } from '../../utils/cn'
 
 type NavbarVariant = 'dark' | 'light'
 
+interface NavLink {
+	label: string
+	href: string
+}
+
 interface NavbarProps {
 	variant?: NavbarVariant
 	rightSlot?: ReactNode
+	links?: NavLink[]
 }
 
-const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
+const defaultLinks: NavLink[] = [
+	{ label: 'Produk', href: '#' },
+	{ label: 'Kategori', href: '#' },
+	{ label: 'Tentang Kami', href: '#' },
+	{ label: 'Kontak', href: '#' },
+]
+
+const Navbar = ({ variant = 'dark', rightSlot, links = defaultLinks }: NavbarProps) => {
 	const isLight = variant === 'light'
+
+	const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+		if (href.startsWith('#') && href.length > 1) {
+			e.preventDefault()
+			const targetId = href.substring(1)
+			const element = document.getElementById(targetId)
+			if (element) {
+				element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+			}
+		}
+	}
 
 	return (
 		<header className={cn(
@@ -26,11 +50,16 @@ const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
 					<span className={cn('text-lg font-semibold', isLight ? 'text-black' : 'text-white')}>CV Rahma Cell</span>
 				</div>
 				<nav className={cn('hidden items-center gap-6 text-sm md:flex md:ml-auto', isLight ? 'text-black' : 'text-white')}>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Beranda</a>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Produk</a>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Kategori</a>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Tentang Kami</a>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Kontak</a>
+					{links.map((link) => (
+						<a
+							key={link.label}
+							href={link.href}
+							onClick={(e) => handleNavClick(e, link.href)}
+							className={cn('hover:font-semibold transition-all', isLight ? 'text-black' : 'text-white')}
+						>
+							{link.label}
+						</a>
+					))}
 				</nav>
 				<div className="hidden items-center gap-3 md:flex">
 					{rightSlot}

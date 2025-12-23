@@ -1,8 +1,13 @@
 import axios from 'axios'
 import { api } from './api.service'
-import type { ProductVariant } from './product.service'
+import type { ProductVariant, Product } from './product.service'
 
 export type ISODateString = string
+
+// Extended ProductVariant for cart that includes product details
+export interface CartProductVariant extends ProductVariant {
+	product?: Product
+}
 
 export interface CartProduct {
 	id: string
@@ -11,7 +16,7 @@ export interface CartProduct {
 	quantity: number
 	created_at?: ISODateString
 	updated_at?: ISODateString
-	product_variant?: ProductVariant
+	product_variant?: CartProductVariant
 }
 
 export interface Cart {

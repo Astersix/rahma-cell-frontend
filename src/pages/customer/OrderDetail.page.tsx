@@ -192,7 +192,7 @@ const OrderDetailPage = () => {
 	const total = order?.total || 0
 	const paymentMethod = order?.payment_method === 'cod' ? 'COD' : order?.payment_method === 'qris' ? 'QRIS' : '—'
 
-	const canCancel = ['menunggu_pembayaran', 'diproses'].includes(order?.status?.toLowerCase() || '')
+	const canCancel = order?.status?.toLowerCase() === 'menunggu_pembayaran'
 
 	return (
 		<CustomerLayout>

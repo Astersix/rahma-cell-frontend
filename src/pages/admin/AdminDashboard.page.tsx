@@ -368,7 +368,7 @@ const AdminDashboard = () => {
 				<div className="mb-6 rounded-md border border-neutral-200 bg-white">
 					<div className="flex items-center justify-between px-4 py-3">
 					<div className="text-sm font-semibold text-neutral-900">
-						Tren Penjualan {period === 'daily' ? '(Hari Ini)' : '(30 Hari)'}
+						Tren Penjualan
 					</div>
 					<button onClick={handleRefresh} className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100" aria-label="Refresh">
 						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
