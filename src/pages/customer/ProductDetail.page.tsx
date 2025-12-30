@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import CustomerLayout from '../../layouts/CustomerLayout'
 import Card from '../../components/ui/Card'
 import { getProductById, getVariantsByProductId, type Product, type ProductVariant } from '../../services/product.service'
+import { getCategoryById } from '../../services/category.service'
 import { addItemToCart, getCartByUserId } from '../../services/cart.service'
 import { getMyProfile } from '../../services/user.service'
 import { useAuthStore } from '../../store/auth.store'
@@ -15,6 +16,7 @@ const PlaceholderImage = () => (
 
 const ProductDetailPage = () => {
 	const { id } = useParams<{ id: string }>()
+	const navigate = useNavigate()
 	const [product, setProduct] = useState<Product | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -24,6 +26,7 @@ const ProductDetailPage = () => {
 	const [qty, setQty] = useState<number>(1)
 	const token = useAuthStore(s => s.token || undefined)
 	const [actionMsg, setActionMsg] = useState<string | null>(null)
+	const [categoryName, setCategoryName] = useState<string>('')
 
 	useEffect(() => {
 		if (!id) return
@@ -41,6 +44,17 @@ const ProductDetailPage = () => {
 				setProduct(p)
 				const vs = vres.data || []
 				setVariants(vs)
+				// Fetch category name for the product
+				if (p?.category_id) {
+					try {
+						const cres = await getCategoryById(String(p.category_id))
+					setCategoryName((cres as any)?.name || cres?.data?.name || '')
+					} catch {
+						setCategoryName('')
+					}
+				} else {
+					setCategoryName('')
+				}
 				const first = vs[0]
 				const firstThumb = first?.product_image?.find((img) => img.is_thumbnail)?.image_url || first?.product_image?.[0]?.image_url || null
 				setSelectedVariantId(first?.id || null)
@@ -87,6 +101,11 @@ const ProductDetailPage = () => {
 
 	async function doAddToCart() {
 		if (!product || !selectedVariant) return
+		if (!inStock) {
+			setActionMsg('Produk ini sedang tidak tersedia')
+			setTimeout(() => setActionMsg(null), 1500)
+			return
+		}
 		if (!token) {
 			setActionMsg('Silakan login untuk menambahkan ke keranjang')
 			setTimeout(() => setActionMsg(null), 1500)
@@ -95,13 +114,31 @@ const ProductDetailPage = () => {
 		try {
 			const me = await getMyProfile(token)
 			const userId = me.id
-			// Ensure cart exists and retrieve its id (flow requirement)
+			
+			// Check existing cart to prevent exceeding stock
 			const cart = await getCartByUserId(userId, token)
-			const cartId = cart.id // currently not required by endpoint, but kept for flow clarity
-			await addItemToCart(userId, { product_variant_id: String(selectedVariant.id), quantity: qty }, token)
-			// Refresh cart after adding
+			const existingItem = cart.cart_product?.find(item => String(item.product_variant_id) === String(selectedVariant.id))
+			const existingQty = existingItem?.quantity || 0
+			const availableStock = Number(selectedVariant.stock) || 0
+			const remainingStock = availableStock - existingQty
+			
+			if (remainingStock <= 0) {
+				setActionMsg('Stok tidak tersedia. Item ini sudah mencapai batas maksimal di keranjang.')
+				setTimeout(() => setActionMsg(null), 2000)
+				return
+			}
+			
+			// Limit quantity to remaining stock
+			const qtyToAdd = Math.min(qty, remainingStock)
+			
+			await addItemToCart(userId, { product_variant_id: String(selectedVariant.id), quantity: qtyToAdd }, token)
 			await getCartByUserId(userId, token)
-			setActionMsg('Ditambahkan ke keranjang')
+			
+			if (qtyToAdd < qty) {
+				setActionMsg(`Ditambahkan ${qtyToAdd} item (stok tersisa)`)
+			} else {
+				setActionMsg('Ditambahkan ke keranjang')
+			}
 		} catch (err: any) {
 			setActionMsg(err?.message || 'Gagal menambahkan ke keranjang')
 		} finally {
@@ -109,24 +146,65 @@ const ProductDetailPage = () => {
 		}
 	}
 
-	function doBuyNow() {
-		// For now, add to cart then notify; checkout flow not implemented
-		doAddToCart()
-		setActionMsg('Produk ditambahkan. Lanjutkan ke keranjang untuk checkout.')
-		setTimeout(() => setActionMsg(null), 2000)
+	async function doBuyNow() {
+		if (!product || !selectedVariant) return
+		if (!inStock) {
+			setActionMsg('Produk ini sedang tidak tersedia')
+			setTimeout(() => setActionMsg(null), 1500)
+			return
+		}
+		if (!token) {
+			setActionMsg('Silakan login untuk melanjutkan')
+			setTimeout(() => setActionMsg(null), 1500)
+			return
+		}
+		
+		try {
+			// Direct checkout: check stock without modifying cart
+			const availableStock = Number(selectedVariant.stock) || 0
+			
+			if (qty > availableStock) {
+				setActionMsg(`Stok tidak mencukupi. Tersedia: ${availableStock}`)
+				setTimeout(() => setActionMsg(null), 2000)
+				return
+			}
+			
+			// Prepare checkout data for direct purchase
+			const thumbnailImage = selectedVariant.product_image?.find(img => img.is_thumbnail)?.image_url || selectedVariant.product_image?.[0]?.image_url || ''
+			const checkoutItem = {
+				key: `${product.id}-${selectedVariant.id}`,
+				productName: product.name,
+				variantName: selectedVariant.variant_name,
+				price: selectedVariant.price,
+				quantity: qty,
+				imageUrl: thumbnailImage,
+				variantId: String(selectedVariant.id)
+			}
+			
+			// Navigate to checkout with direct purchase flag
+			navigate('/checkout', {
+				state: {
+					selectedItems: [checkoutItem],
+					selectedKeys: [checkoutItem.key],
+					checkoutMethod: 'direct'
+				}
+			})
+		} catch (err: any) {
+			setActionMsg(err?.message || 'Gagal melanjutkan ke checkout')
+			setTimeout(() => setActionMsg(null), 1500)
+		}
 	}
 
 	return (
 		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
-				{/* Breadcrumb */}
 				<nav className="mb-4 text-xs text-neutral-500">
 					<button
 						type="button"
-						onClick={() => window.history.back()}
+						onClick={() => navigate('/admin/products')}
 						className="text-neutral-600 hover:underline"
 					>
-						Beranda
+						← Beranda
 					</button>
 					<span className="mx-2">/</span>
 					<span className="text-neutral-800">{product?.name ?? 'Memuat...'}</span>
@@ -137,7 +215,6 @@ const ProductDetailPage = () => {
 
 				{product && (
 					<div className="grid gap-6 md:grid-cols-[1fr_1.1fr]">
-						{/* Left: gallery */}
 						<div>
 							<Card className="h-[360px]">
 								{selectedImageUrl ? (
@@ -154,7 +231,6 @@ const ProductDetailPage = () => {
 										onClick={() => setSelectedImageUrl(img.image_url)}
 									>
 										<div className="h-16 w-full overflow-hidden rounded-md bg-neutral-100">
-											{/* eslint-disable-next-line @next/next/no-img-element */}
 											<img src={img.image_url} alt={`img-${idx}`} className="h-full w-full object-cover" />
 										</div>
 									</button>
@@ -169,20 +245,20 @@ const ProductDetailPage = () => {
 							</div>
 						</div>
 
-						{/* Right: info */}
 						<div>
 							<h1 className="text-2xl font-semibold text-neutral-900">{product.name}</h1>
 							<p className="mt-2 max-w-xl text-sm text-neutral-600">{product.description || 'Tidak ada deskripsi.'}</p>
 
-							<div className="my-4 h-px bg-neutral-200" />
+														<div className="my-4 h-px bg-neutral-200" />
 
-							{/* Price block */}
+														<div className="mb-3 text-sm text-neutral-700">
+															<span className="font-medium">Kategori:</span> <span>{categoryName || '—'}</span>
+														</div>
+
 							<div className="mb-4 flex items-end gap-3">
 								<div className="text-2xl font-semibold text-neutral-900">{priceText}</div>
-								{/* Optional crossed-out price/discount not available */}
 							</div>
 
-							{/* Variant options */}
 							<div className="space-y-3">
 								<div>
 									<div className="mb-2 text-sm font-medium text-neutral-800">Pilih Varian</div>
@@ -203,7 +279,6 @@ const ProductDetailPage = () => {
 
 							<div className="my-4 h-px bg-neutral-200" />
 
-							{/* Availability / actions */}
 							<div className="mb-4 flex items-center gap-3 text-sm text-neutral-700">
 								<span className={`inline-flex h-2 w-2 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-500'}`} />
 								<span>{inStock ? `Stok tersedia (${stock}) - Siap untuk dikirim` : 'Stok habis'}</span>
@@ -211,37 +286,37 @@ const ProductDetailPage = () => {
 
 							<div className="flex items-center gap-3">
 								<button
-									disabled={!selectedVariant}
-									onClick={doAddToCart}
-									className={`flex-1 rounded-md px-4 py-2 text-sm font-medium text-white ${selectedVariant ? 'bg-red-500 hover:bg-red-600' : 'bg-neutral-400 cursor-not-allowed'}`}
-								>
-									Masukkan keranjang
-								</button>
-								<div className="flex items-center rounded-md border border-neutral-300">
-									<button className="px-3 py-2 text-neutral-700" onClick={dec}>-</button>
-									  <div className="px-3 py-2 text-neutral-800 min-w-8 text-center">{qty}</div>
-									<button className="px-3 py-2 text-neutral-700" onClick={inc}>+</button>
-								</div>
-							</div>
+					disabled={!selectedVariant || !inStock}
+					onClick={doAddToCart}
+					className={`flex-1 rounded-md px-4 py-2 text-sm font-medium text-white ${selectedVariant && inStock ? 'bg-red-500 hover:bg-red-600' : 'bg-neutral-400 cursor-not-allowed'}`}
+				>
+					Masukkan keranjang
+				</button>
+				<div className={`flex items-center rounded-md border ${!selectedVariant || !inStock ? 'border-neutral-200 bg-neutral-50' : 'border-neutral-300'}`}>
+					<button disabled={!selectedVariant || !inStock} className={`px-3 py-2 ${!selectedVariant || !inStock ? 'text-neutral-400 cursor-not-allowed' : 'text-neutral-700'}`} onClick={dec}>-</button>
+					<div className={`px-3 py-2 min-w-8 text-center ${!selectedVariant || !inStock ? 'text-neutral-400' : 'text-neutral-800'}`}>{qty}</div>
+					<button disabled={!selectedVariant || !inStock} className={`px-3 py-2 ${!selectedVariant || !inStock ? 'text-neutral-400 cursor-not-allowed' : 'text-neutral-700'}`} onClick={inc}>+</button>
+				</div>
+			</div>
 
-							<button
-								disabled={!selectedVariant}
-								onClick={doBuyNow}
-								className={`mt-3 w-full rounded-md border px-4 py-2 text-sm font-medium ${selectedVariant ? 'border-red-400 text-red-600 hover:bg-red-50' : 'border-neutral-300 text-neutral-400 cursor-not-allowed'}`}
-							>
-								Beli Sekarang
-							</button>
+			<button
+				disabled={!selectedVariant || !inStock}
+				onClick={doBuyNow}
+				className={`mt-3 w-full rounded-md border px-4 py-2 text-sm font-medium ${selectedVariant && inStock ? 'border-red-400 text-red-600 hover:bg-red-50' : 'border-neutral-300 text-neutral-400 cursor-not-allowed'}`}
+			>
+				Beli Sekarang
+			</button>
 
-							{actionMsg && (
-								<div className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{actionMsg}</div>
-							)}
+			{actionMsg && (
+				<div className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{actionMsg}</div>
+			)}
 
-							<div className="my-6">
-								<Card>
-									<div className="text-sm font-medium text-neutral-800">Deskripsi Produk</div>
-									<p className="mt-2 text-sm text-neutral-600">{product.description || '—'}</p>
-								</Card>
-							</div>
+			<div className="my-6">
+				<Card>
+					<div className="text-sm font-medium text-neutral-800">Deskripsi Produk</div>
+					<p className="mt-2 text-sm text-neutral-600">{product.description || '—'}</p>
+				</Card>
+			</div>
 						</div>
 					</div>
 				)}

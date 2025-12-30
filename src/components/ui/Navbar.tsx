@@ -1,18 +1,41 @@
-import ButtonIcon from './ButtonIcon'
 import type { ReactNode } from 'react'
+import { Bars3Icon } from '@heroicons/react/24/outline'
+import ButtonIcon from './ButtonIcon'
+import { cn } from '../../utils/cn'
+
 type NavbarVariant = 'dark' | 'light'
+
+interface NavLink {
+	label: string
+	href: string
+}
 
 interface NavbarProps {
 	variant?: NavbarVariant
 	rightSlot?: ReactNode
+	links?: NavLink[]
 }
 
-function cn(...parts: Array<string | false | null | undefined>) {
-	return parts.filter(Boolean).join(' ')
-}
+const defaultLinks: NavLink[] = [
+	{ label: 'Produk', href: '#' },
+	{ label: 'Kategori', href: '#' },
+	{ label: 'Tentang Kami', href: '#' },
+	{ label: 'Kontak', href: '#' },
+]
 
-const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
+const Navbar = ({ variant = 'dark', rightSlot, links = defaultLinks }: NavbarProps) => {
 	const isLight = variant === 'light'
+
+	const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+		if (href.startsWith('#') && href.length > 1) {
+			e.preventDefault()
+			const targetId = href.substring(1)
+			const element = document.getElementById(targetId)
+			if (element) {
+				element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+			}
+		}
+	}
 
 	return (
 		<header className={cn(
@@ -27,11 +50,16 @@ const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
 					<span className={cn('text-lg font-semibold', isLight ? 'text-black' : 'text-white')}>CV Rahma Cell</span>
 				</div>
 				<nav className={cn('hidden items-center gap-6 text-sm md:flex md:ml-auto', isLight ? 'text-black' : 'text-white')}>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Beranda</a>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Produk</a>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Kategori</a>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Tentang Kami</a>
-					<a href="#" className={cn('hover:font-semibold', isLight ? 'text-black' : 'text-white')}>Kontak</a>
+					{links.map((link) => (
+						<a
+							key={link.label}
+							href={link.href}
+							onClick={(e) => handleNavClick(e, link.href)}
+							className={cn('hover:font-semibold transition-all', isLight ? 'text-black' : 'text-white')}
+						>
+							{link.label}
+						</a>
+					))}
 				</nav>
 				<div className="hidden items-center gap-3 md:flex">
 					{rightSlot}
@@ -41,13 +69,7 @@ const Navbar = ({ variant = 'dark', rightSlot }: NavbarProps) => {
 						aria-label="Open Menu"
 						variant="light"
 						className="h-9 w-9 p-0 border border-neutral-200"
-						icon={
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-								<line x1="3" y1="6" x2="21" y2="6"></line>
-								<line x1="3" y1="12" x2="21" y2="12"></line>
-								<line x1="3" y1="18" x2="21" y2="18"></line>
-							</svg>
-						}
+						icon={<Bars3Icon className="w-[18px] h-[18px]" />}
 					/>
 				</div>
 			</div>

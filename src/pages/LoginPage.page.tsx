@@ -6,6 +6,7 @@ import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { login } from '../services/auth.service'
 import { useAuthStore } from '../store/auth.store'
+import { ShieldCheckIcon } from '@heroicons/react/24/outline'
 
 const LoginPage = () => {
 	const [showPassword, setShowPassword] = useState(false)
@@ -22,14 +23,25 @@ const LoginPage = () => {
 		setLoading(true)
 		try {
 			const data = await login({ email, password })
-			const role = (data.user?.role === 'admin') ? 'admin' : 'user'
-			const token = (data as any).token
-				?? (data as any).accessToken
-				?? (data as any).jwt
-				?? (data as any)?.data?.token
-				?? (data as any)?.data?.accessToken
-				?? null
-			if (role === 'admin') loginAsAdmin(token); else loginAsUser(token)
+			
+			const role = (data.user?.role === 'admin') ? 'admin' : 'customer'
+			const token = data.accessToken 
+				|| data.token 
+				|| (data as any).jwt
+				|| (data as any)?.data?.token
+				|| (data as any)?.data?.accessToken
+				|| null
+			
+			if (!token) {
+				throw new Error('Token tidak ditemukan dalam respons')
+			}
+			
+			if (role === 'admin') {
+				loginAsAdmin(token)
+			} else {
+				loginAsUser(token)
+			}
+			
 			navigate(role === 'admin' ? '/admin/dashboard' : '/homepage')
 		} catch (err: any) {
 			const message = err?.message || err?.data?.message || 'Gagal masuk. Coba lagi.'
@@ -41,7 +53,7 @@ const LoginPage = () => {
 
 	return (
 		<MainLayout>
-			<section className="mx-auto max-w-3xl">
+			<section className="mx-auto max-w-3xl pb-10 min-h-screen">
 				<div className="mb-8 text-center">
 					<h1 className="text-2xl font-semibold">Selamat Datang Kembali!</h1>
 					<p className="mt-2 text-sm text-neutral-600">
@@ -62,13 +74,12 @@ const LoginPage = () => {
 						<div>
 							<label className="mb-1 block text-sm font-medium text-black">Kata Sandi</label>
 							<div className="relative">
-								<input
+								<Input
 									type={showPassword ? 'text' : 'password'}
 									placeholder="Masukkan kata sandi Anda"
 									value={password}
 									onChange={e => setPassword(e.target.value)}
 									required
-									className="block w-full rounded-md border border-neutral-200 bg-white px-3 py-2 pr-9 text-sm text-black placeholder:text-neutral-400 outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,0,0,0.1)]"
 								/>
 								<button
 									type="button"
@@ -109,16 +120,13 @@ const LoginPage = () => {
 						</p>
 						<div className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600">
 							<div className="flex items-center gap-2">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-700">
-									<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-								</svg>
+							<ShieldCheckIcon className="w-4 h-4 text-neutral-700" />
 								<span>Informasi Anda aman dan tidak akan pernah dibagikan kepada pihak ketiga</span>
 							</div>
 						</div>
 					</form>
 				</Card>
 
-				{/* Helper texts under card */}
 				<div className="mt-8 space-y-2 text-center text-xs text-neutral-500">
 					<p>
 						Butuh bantuan? <a href="#" className="font-medium hover:underline">Hubungi customer service</a>

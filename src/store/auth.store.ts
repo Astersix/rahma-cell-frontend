@@ -7,7 +7,6 @@ interface AuthState {
 	isAuthenticated: boolean
 	role: UserRole
 	token: string | null
-	// actions
 	loginAsUser: (token?: string | null) => void
 	loginAsAdmin: (token?: string | null) => void
 	logout: () => void

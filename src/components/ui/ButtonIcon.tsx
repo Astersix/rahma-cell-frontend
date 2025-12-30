@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import type React from 'react'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 // Reuse the same API as Button.tsx and add dynamic icon support
 
@@ -82,17 +83,9 @@ function IconSvg({ name, size = 'md' }: { name: IconName; size?: ButtonSize }) {
         </svg>
       )
     case 'arrow-left':
-      return (
-        <svg width={dim} height={dim} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-      )
+      return <ChevronLeftIcon className={`w-${dim === 18 ? '5' : '4'} h-${dim === 18 ? '5' : '4'}`} />
     case 'arrow-right':
-      return (
-        <svg width={dim} height={dim} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      )
+      return <ChevronRightIcon className={`w-${dim === 18 ? '5' : '4'} h-${dim === 18 ? '5' : '4'}`} />
     case 'edit':
       return (
         <svg width={dim} height={dim} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

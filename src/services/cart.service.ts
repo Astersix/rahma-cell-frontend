@@ -1,21 +1,13 @@
 import axios from 'axios'
-import type { ProductVariant } from './product.service'
-
-// Base URL normalization (same pattern as other services)
-const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)
-const API_BASE_URL = RAW_BASE
-	? (/^https?:\/\//i.test(RAW_BASE) ? RAW_BASE : `http://localhost${RAW_BASE}`)
-	: 'http://localhost:5000/api'
-
-const api = axios.create({
-	baseURL: API_BASE_URL,
-	withCredentials: false,
-	headers: {
-		'Content-Type': 'application/json',
-	},
-})
+import { api } from './api.service'
+import type { ProductVariant, Product } from './product.service'
 
 export type ISODateString = string
+
+// Extended ProductVariant for cart that includes product details
+export interface CartProductVariant extends ProductVariant {
+	product?: Product
+}
 
 export interface CartProduct {
 	id: string
@@ -24,7 +16,7 @@ export interface CartProduct {
 	quantity: number
 	created_at?: ISODateString
 	updated_at?: ISODateString
-	product_variant?: ProductVariant
+	product_variant?: CartProductVariant
 }
 
 export interface Cart {
@@ -63,17 +55,10 @@ function normalizeAxiosError(err: unknown) {
 	return { message: String(err) }
 }
 
-function authHeaders(token?: string) {
-	if (!token) return undefined
-	const raw = String(token)
-	const t = raw.replace(/^Bearer\s+/i, '')
-	return { Authorization: `Bearer ${t}` }
-}
-
 // GET /cart/:id => returns a Cart (created if absent)
-export async function getCartByUserId(userId: string, token?: string): Promise<Cart> {
+export async function getCartByUserId(userId: string, _token?: string): Promise<Cart> {
 	try {
-		const res = await api.get(`/cart/${encodeURIComponent(userId)}`, { headers: authHeaders(token) })
+		const res = await api.get(`/cart/${encodeURIComponent(userId)}`)
 		return res.data as Cart
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -81,9 +66,9 @@ export async function getCartByUserId(userId: string, token?: string): Promise<C
 }
 
 // POST /cart/:id => { product_variant_id, quantity } -> returns created/updated cart_product in envelope
-export async function addItemToCart(userId: string, dto: AddToCartDTO, token?: string): Promise<ApiEnvelope<CartProduct>> {
+export async function addItemToCart(userId: string, dto: AddToCartDTO, _token?: string): Promise<ApiEnvelope<CartProduct>> {
 	try {
-		const res = await api.post<ApiEnvelope<CartProduct>>(`/cart/${encodeURIComponent(userId)}`, dto, { headers: authHeaders(token) })
+		const res = await api.post<ApiEnvelope<CartProduct>>(`/cart/${encodeURIComponent(userId)}`, dto)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -91,9 +76,9 @@ export async function addItemToCart(userId: string, dto: AddToCartDTO, token?: s
 }
 
 // PUT /cart/:id/cart_product/:itemId => { quantity } -> returns updated cart_product in envelope
-export async function updateCartItemQuantity(userId: string, itemId: string, dto: UpdateCartItemDTO, token?: string): Promise<ApiEnvelope<CartProduct>> {
+export async function updateCartItemQuantity(userId: string, itemId: string, dto: UpdateCartItemDTO, _token?: string): Promise<ApiEnvelope<CartProduct>> {
 	try {
-		const res = await api.put<ApiEnvelope<CartProduct>>(`/cart/${encodeURIComponent(userId)}/cart_product/${encodeURIComponent(itemId)}`, dto, { headers: authHeaders(token) })
+		const res = await api.put<ApiEnvelope<CartProduct>>(`/cart/${encodeURIComponent(userId)}/cart_product/${encodeURIComponent(itemId)}`, dto)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)
@@ -101,9 +86,9 @@ export async function updateCartItemQuantity(userId: string, itemId: string, dto
 }
 
 // DELETE /cart/:id/cart_product/:itemId -> returns envelope with success/message
-export async function deleteCartItem(userId: string, itemId: string, token?: string): Promise<ApiEnvelope<null>> {
+export async function deleteCartItem(userId: string, itemId: string, _token?: string): Promise<ApiEnvelope<null>> {
 	try {
-		const res = await api.delete<ApiEnvelope<null>>(`/cart/${encodeURIComponent(userId)}/cart_product/${encodeURIComponent(itemId)}`, { headers: authHeaders(token) })
+		const res = await api.delete<ApiEnvelope<null>>(`/cart/${encodeURIComponent(userId)}/cart_product/${encodeURIComponent(itemId)}`)
 		return res.data
 	} catch (err) {
 		throw normalizeAxiosError(err)

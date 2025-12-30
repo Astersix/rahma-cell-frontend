@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { XMarkIcon, ArrowUpTrayIcon, TableCellsIcon } from '@heroicons/react/24/outline'
 
 export interface ImportFilePopupProps {
 	open: boolean
@@ -112,11 +113,7 @@ export default function ImportFilePopup({ open, onClose, onImport, uploading }: 
 					</button>
 					<div className="mb-5 text-center">
 						<div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100">
-							<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-600">
-								<path d="M4 4h16v4H4z" />
-								<path d="M4 14h16v6H4z" />
-								<path d="M4 8h16v6H4z" />
-							</svg>
+						<TableCellsIcon className="w-[26px] h-[26px] text-neutral-600" />
 						</div>
 						<h2 className="text-lg font-semibold text-neutral-900">Impor Data Produk</h2>
 						<p className="mt-1 text-sm text-neutral-500">Unggah berkas CSV atau Excel untuk memperbarui katalog.</p>
@@ -141,12 +138,7 @@ export default function ImportFilePopup({ open, onClose, onImport, uploading }: 
 						{!state.file && (
 							<>
 								<div className="mb-3 flex h-14 w-14 items-center justify-center rounded-md bg-neutral-100">
-									<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-600">
-										<path d="M4 16v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1" />
-										<path d="M12 12v6" />
-										<path d="M8 12l4-4 4 4" />
-										<path d="M12 2v6" />
-									</svg>
+								<ArrowUpTrayIcon className="w-[30px] h-[30px] text-neutral-600" />
 								</div>
 								<p className="text-sm text-neutral-600">
 									<button type="button" onClick={onChoose} className="font-medium text-red-600 hover:underline">Pilih berkas</button>
@@ -159,18 +151,11 @@ export default function ImportFilePopup({ open, onClose, onImport, uploading }: 
 							<div className="w-full">
 								<div className="flex items-center justify-between gap-3 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-left">
 									<div className="flex min-w-0 items-center gap-2">
-										<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-600 shrink-0">
-											<path d="M4 4h16v16H4z" />
-											<path d="M4 8h16" />
-											<path d="M8 4v16" />
-										</svg>
+									<TableCellsIcon className="w-[18px] h-[18px] text-neutral-600 shrink-0" />
 										<span className="truncate text-sm text-neutral-800" title={state.file.name}>{state.file.name}</span>
 									</div>
 									<button type="button" onClick={clearFile} className="rounded p-1 text-neutral-500 hover:text-neutral-700">
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-											<line x1="18" y1="6" x2="6" y2="18" />
-											<line x1="6" y1="6" x2="18" y2="18" />
-										</svg>
+									<XMarkIcon className="w-4 h-4" />
 									</button>
 								</div>
 								{uploading && (
