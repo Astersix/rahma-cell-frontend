@@ -1,6 +1,6 @@
 # 🛒 Frontend - Marketplace Digital CV Rahma Cell
 
-Repository ini berisi kode sumber antarmuka pengguna (Frontend) untuk **Sistem Marketplace CV Rahma Cell**. [cite_start]Aplikasi ini dibangun sebagai *Single Page Application* (SPA) yang responsif untuk memudahkan pelanggan berbelanja secara digital[cite: 38].
+Repository ini berisi kode sumber antarmuka pengguna (Frontend) untuk **Sistem Marketplace CV Rahma Cell**. Aplikasi ini dibangun sebagai *Single Page Application* (SPA) yang responsif untuk memudahkan pelanggan berbelanja secara digital.
 
 ## 📱 Tech Stack
 * **Framework:** React.js dengan Vite
