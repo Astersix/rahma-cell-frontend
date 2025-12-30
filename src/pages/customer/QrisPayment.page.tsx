@@ -277,7 +277,18 @@ const QrisPaymentPage = () => {
                   return (
                     <div key={idx} className="flex items-start justify-between gap-3 text-xs">
                       <div className="flex items-start gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 text-[10px] text-neutral-500">Produk</div>
+                        {(() => {
+                          const thumb = variant?.product_image?.find((img: any) => img.is_thumbnail)?.image_url || variant?.product_image?.[0]?.image_url || it.thumbnail_url || ''
+                          return (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-100 overflow-hidden">
+                              {thumb ? (
+                                <img src={thumb} alt={displayName} className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="text-[10px] text-neutral-500">Produk</div>
+                              )}
+                            </div>
+                          )
+                        })()}
                         <div className="leading-snug text-neutral-700">
                           <div className="font-medium text-neutral-800">{displayName}</div>
                           <div className="text-neutral-600">Qty: {Number(it?.quantity) || 1}</div>

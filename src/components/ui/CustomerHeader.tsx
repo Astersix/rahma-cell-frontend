@@ -34,7 +34,7 @@ const CustomerHeader = ({
 	searchValue = '',
 	onBellClick,
 	onCartClick,
-	avatarSrc = '/vite.svg',
+	avatarSrc = '/user-icon.webp',
 	avatarAlt = 'User Avatar',
 	rightExtra,
     variant = 'light',
@@ -160,10 +160,7 @@ const CustomerHeader = ({
 					onClick={() => navigate('/')}
 					className="flex items-center gap-2 hover:opacity-80 transition-opacity"
 				>
-					<div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', isLight ? 'bg-black text-white' : 'bg-white text-black')}>
-						<span className="text-lg font-bold">RC</span>
-					</div>
-					<span className={cn('text-lg font-semibold', isLight ? 'text-black' : 'text-white')}>CV Rahma Cell</span>
+					<img className="h-8" src="/rahmacell-logo.png" alt="RC Logo" />
 				</button>
 
 				{/* Center search */}

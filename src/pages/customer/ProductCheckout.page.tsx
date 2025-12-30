@@ -9,7 +9,7 @@ import { useAuthStore } from '../../store/auth.store'
 import { orderService, type PlaceOrderRequest } from '../../services/order.service'
 import { getMyProfile, type Address } from '../../services/user.service'
 import { paymentService } from '../../services/payment.service'
-import { ArrowLongLeftIcon } from '@heroicons/react/24/outline'
+import { ArrowLongLeftIcon, BanknotesIcon, QrCodeIcon } from '@heroicons/react/24/outline'
 
 function formatIDR(n?: number) {
 	if (typeof n !== 'number' || isNaN(n)) return 'Rp —'
@@ -253,12 +253,7 @@ const ProductCheckoutPage = () => {
 										</div>
 									</div>
 									<button type="button" className="rounded-md border border-neutral-300 p-2 text-neutral-600">
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-											<rect x="3" y="3" width="7" height="7" />
-											<rect x="14" y="3" width="7" height="7" />
-											<rect x="14" y="14" width="7" height="7" />
-											<path d="M3 14h7v7H3z" />
-										</svg>
+										<QrCodeIcon className="w-4 h-4" />
 									</button>
 								</label>
 
@@ -277,10 +272,7 @@ const ProductCheckoutPage = () => {
 										</div>
 									</div>
 									<button type="button" className="rounded-md border border-neutral-300 p-2 text-neutral-600">
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-											<rect x="3" y="4" width="18" height="14" rx="2" />
-											<path d="M7 4v4h10V4" />
-										</svg>
+										<BanknotesIcon className="w-4 h-4" />
 									</button>
 								</label>
 							</div>
