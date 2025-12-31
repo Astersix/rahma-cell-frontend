@@ -34,6 +34,7 @@ const QrisPaymentPage = () => {
   const [showFailureModal, setShowFailureModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [canceling, setCanceling] = useState(false)
+  const [showCannotCancelModal, setShowCannotCancelModal] = useState(false)
 
   const items = useMemo(() => (Array.isArray(order?.order_product) ? order.order_product : []), [order])
   const subtotal = useMemo(() => items.reduce((s: number, it: any) => s + (Number(it?.price) || 0) * (Number(it?.quantity) || 0), 0), [items])
@@ -48,8 +49,8 @@ const QrisPaymentPage = () => {
       setShowCancelModal(false)
       navigate('/orders')
     } catch (e: any) {
-      setError(e?.message || 'Gagal membatalkan pesanan')
       setShowCancelModal(false)
+      setShowCannotCancelModal(true)
     } finally {
       setCanceling(false)
     }
@@ -247,7 +248,14 @@ const QrisPaymentPage = () => {
                   <Button 
                     fullWidth 
                     className="bg-red-600 hover:bg-red-700 active:bg-red-800"
-                    onClick={() => setShowCancelModal(true)}
+                    onClick={() => {
+                      // Re-check live status before opening cancel confirmation
+                      if ((order?.status || '').toString().toLowerCase() !== 'menunggu_pembayaran') {
+                        setShowCannotCancelModal(true)
+                        return
+                      }
+                      setShowCancelModal(true)
+                    }}
                     disabled={canceling || statusLabel === 'Pembayaran Berhasil'}
                   >
                     Batalkan Pesanan
@@ -370,6 +378,25 @@ const QrisPaymentPage = () => {
           label: 'Tidak, Kembali',
           variant: 'outlined',
           onClick: handleCancelOrder,
+        }}
+      />
+      
+      <PopupModal
+        open={showCannotCancelModal}
+        onClose={() => {
+          setShowCannotCancelModal(false)
+          if (orderId) navigate(`/orders/${orderId}`, { replace: true })
+        }}
+        icon="error"
+        title="Pesanan tidak dapat dibatalkan"
+        description="Pesanan telah diubah dan tidak dapat dibatalkan oleh pengguna."
+        primaryButton={{
+          label: 'Lihat Pesanan',
+          variant: 'filled',
+          onClick: () => {
+            setShowCannotCancelModal(false)
+            if (orderId) navigate(`/orders/${orderId}`, { replace: true })
+          },
         }}
       />
     </CustomerLayout>

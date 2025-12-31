@@ -8,6 +8,7 @@ import ImportFilePopup from '../../components/ui/ImportFile'
 import { getAllCategories, type Category } from '../../services/category.service'
 import { useAuthStore } from '../../store/auth.store'
 import { MagnifyingGlassIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import AlertMessage from '../../components/ui/AlertMessage'
 
 const ProductsPage = () => {
   const navigate = useNavigate()
@@ -171,10 +172,7 @@ const ProductsPage = () => {
           <p className="mt-2 text-sm text-neutral-600">Kelola katalog produk, variasi, dan stok.</p>
         </div>
         {importSummary && (
-          <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-            Berhasil impor {importSummary.created_products} produk, {importSummary.created_variants} varian{typeof importSummary.updated_variants === 'number' ? `, ${importSummary.updated_variants} varian diperbarui` : ''}.
-            {importSummary.message ? ` ${importSummary.message}` : ''}
-          </div>
+          <AlertMessage variant="success" message={`Berhasil impor ${importSummary.created_products} produk, ${importSummary.created_variants} varian${typeof importSummary.updated_variants === 'number' ? `, ${importSummary.updated_variants} varian diperbarui` : ''}.${importSummary.message ? ` ${importSummary.message}` : ''}`} onClose={() => setImportSummary(null)} />
         )}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex-1 max-w-xl">

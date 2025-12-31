@@ -58,6 +58,16 @@ export async function register(payload: RegisterPayload): Promise<AuthResponse> 
 	}
 }
 
+export async function checkPhoneExists(phone: string): Promise<boolean> {
+	try {
+		const res = await api.get<{ exists: boolean }>('/auth/check-phone', { params: { phone } })
+		return !!res.data.exists
+	} catch (err) {
+		const info = normalizeAxiosError(err)
+		throw info
+	}
+}
+
 // Refresh access token: POST /auth/refresh
 export async function refreshToken(): Promise<AuthResponse> {
 	try {

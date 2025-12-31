@@ -4,35 +4,81 @@ import MainLayout from '../layouts/MainLayout'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
-import { register } from '../services/auth.service'
+import AlertMessage from '../components/ui/AlertMessage'
+import { register, checkPhoneExists } from '../services/auth.service'
 import { EyeIcon, EyeSlashIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
-import { useAuthStore } from '../store/auth.store'
 
 const RegisterPage = () => {
     const [showPassword, setShowPassword] = useState(false)
     const [agree, setAgree] = useState(false)
     const [name, setName] = useState('')
     const [phone, setPhone] = useState('')
+    const [alert, setAlert] = useState<{ variant: 'success' | 'error'; message: string } | null>(null)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const navigate = useNavigate()
-    const { loginAsUser } = useAuthStore()
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
         if (!agree) return
+
+        // Validate phone input on submit: must contain only digits
+        const cleanedPhone = phone.replace(/\D/g, '')
+        if (!cleanedPhone || cleanedPhone !== phone) {
+            const message = 'Nomor telepon tidak valid. Hanya angka yang diperbolehkan.'
+            setError(message)
+            return
+        }
+
+        // Validate lengths
+        if ((name || '').trim().length < 3) {
+            const message = 'Nama minimal 3 karakter.'
+            setError(message)
+            setAlert({ variant: 'error', message })
+            return
+        }
+
+        if ((password || '').length < 8) {
+            const message = 'Kata sandi minimal 8 karakter.'
+            setError(message)
+            setAlert({ variant: 'error', message })
+            return
+        }
+
+        if (cleanedPhone.length < 11) {
+            const message = 'Nomor telepon minimal 11 angka.'
+            setError(message)
+            setAlert({ variant: 'error', message })
+            return
+        }
+
         setError(null)
+        setAlert(null)
         setLoading(true)
         try {
-            // Register payload
-            await register({ name, phone, email, password, role: 'customer' })
-            loginAsUser()
-            navigate('/homepage')
+            // Check phone uniqueness
+            const exists = await checkPhoneExists(cleanedPhone)
+            if (exists) {
+                const message = 'Nomor telepon sudah terdaftar.'
+                setError(message)
+                setLoading(false)
+                return
+            }
+
+            const res = await register({ name, phone: cleanedPhone, email, password, role: 'customer' })
+
+            const successMsg = (res as any)?.message || 'Registrasi berhasil. Silakan masuk.'
+            setAlert({ variant: 'success', message: successMsg })
+            setLoading(false)
+
+            // Wait for the alert duration (3s) then redirect to login
+            setTimeout(() => navigate('/login'), 3000)
         } catch (err: any) {
             const message = err?.message || err?.data?.message || 'Registrasi gagal. Coba lagi.'
             setError(message)
+            setAlert({ variant: 'error', message })
         } finally {
             setLoading(false)
         }
@@ -40,6 +86,14 @@ const RegisterPage = () => {
 
     return (
         <MainLayout>
+            {alert && (
+                <AlertMessage
+                    variant={alert.variant}
+                    message={alert.message}
+                    onClose={() => setAlert(null)}
+                    duration={3000}
+                />
+            )}
             <section className="mx-auto max-w-3xl pb-10 min-h-screen">
                 <div className="mb-8 text-center">
                     <h1 className="text-2xl font-semibold">Bergabung dengan CV Rahma Cell</h1>

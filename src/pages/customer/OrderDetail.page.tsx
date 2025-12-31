@@ -22,6 +22,7 @@ const OrderDetailPage = () => {
 	const [cancelling, setCancelling] = useState(false)
 	const [showCancelModal, setShowCancelModal] = useState(false)
 	const [showSuccessModal, setShowSuccessModal] = useState(false)
+	const [showCannotCancelModal, setShowCannotCancelModal] = useState(false)
 	const [qrUrl, setQrUrl] = useState<string | null>(null)
 	const [paymentExpiry, setPaymentExpiry] = useState<Date | null>(null)
 	const [timer, setTimer] = useState<number>(15 * 60) // 15 minutes
@@ -146,8 +147,8 @@ const OrderDetailPage = () => {
 			setShowCancelModal(false)
 			setShowSuccessModal(true)
 		} catch (err: any) {
-			setError(err?.message || 'Gagal membatalkan pesanan')
 			setShowCancelModal(false)
+			setShowCannotCancelModal(true)
 		} finally {
 			setCancelling(false)
 		}
@@ -353,7 +354,14 @@ const OrderDetailPage = () => {
 									fullWidth
 									variant="light"
 									className="border-red-500 text-red-600 hover:bg-red-50 active:bg-red-100"
-								onClick={() => setShowCancelModal(true)}
+							onClick={() => {
+								// Re-check live status before opening cancel confirmation
+								if ((order?.status || '').toString().toLowerCase() !== 'menunggu_pembayaran') {
+									setShowCannotCancelModal(true)
+									return
+								}
+								setShowCancelModal(true)
+							}}
 								disabled={cancelling}
 							>
 								Batalkan Pesanan
@@ -380,6 +388,26 @@ const OrderDetailPage = () => {
 					variant: 'outlined',
 					onClick: () => setShowCancelModal(false),
 				}}
+			/>
+
+			<PopupModal
+				open={showCannotCancelModal}
+				onClose={() => {
+					setShowCannotCancelModal(false)
+					// Refresh the page to reflect updated status
+					window.location.reload()
+				}}
+				icon="error"
+				title="Pesanan tidak dapat dibatalkan"
+				description="Pesanan telah diubah dan tidak dapat dibatalkan oleh pengguna."
+				primaryButton={{
+					label: 'Tutup',
+					onClick: () => {
+						setShowCannotCancelModal(false)
+						window.location.reload()
+					}
+				}}
+				showCloseButton={true}
 			/>
 
 			<PopupModal

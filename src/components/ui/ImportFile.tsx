@@ -79,8 +79,111 @@ export default function ImportFilePopup({ open, onClose, onImport, uploading }: 
 
 	async function submit() {
 		if (!state.file || uploading) return
+		const file = state.file
 		try {
-			await onImport?.(state.file)
+			const name = file.name.toLowerCase()
+			let headers: string[] = []
+			let dataRowsCount = 0
+
+			if (name.endsWith('.csv')) {
+				const text = await file.text()
+				const lines = text.split(/\r?\n/).map(l => l.trim())
+				// keep empty lines for row position accuracy
+				const nonEmptyLines = lines.filter(Boolean)
+				if (lines.length === 0) {
+					setState({ file, error: 'Isi file tidak valid' })
+					return
+				}
+				headers = (lines[0] || '').split(/,|;/).map(h => h.trim())
+				dataRowsCount = nonEmptyLines.slice(1).filter(l => l.replace(/[,;\s]/g, '') !== '').length
+
+				// validate header names
+				const allowed = ['category_id', 'name', 'description', 'variant_name', 'price', 'stock', 'image_url']
+				const normalized = headers.map(h => (h || '').toLowerCase().replace(/\s+/g, '_'))
+				for (const h of normalized) {
+					if (!h) continue
+					if (!allowed.includes(h)) {
+						setState({ file, error: `Header tidak valid: ${h}` })
+						return
+					}
+				}
+
+				// validate rows for required fields (category_id, name)
+				const headerMap = normalized
+				for (let i = 1; i < lines.length; i++) {
+					const line = lines[i]
+					if (!line || line.replace(/[,;\s]/g, '') === '') continue
+					const cols = line.split(/,|;/)
+					const obj: Record<string, string> = {}
+					for (let c = 0; c < headerMap.length; c++) {
+						const key = headerMap[c]
+						if (!key) continue
+						obj[key] = String((cols[c] || '')).trim()
+					}
+					if (!obj['category_id'] || !obj['name']) {
+						setState({ file, error: `Isi file tidak valid pada baris ${i + 1}` })
+						return
+					}
+				}
+			} else if (name.endsWith('.xls') || name.endsWith('.xlsx')) {
+				try {
+					const XLSX = await import('xlsx')
+					const ab = await file.arrayBuffer()
+					const workbook = XLSX.read(ab, { type: 'array' })
+					const sheetName = workbook.SheetNames[0]
+					const sheet = workbook.Sheets[sheetName]
+					const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
+					if (!rows || rows.length === 0) {
+						setState({ file, error: 'Isi file tidak valid' })
+						return
+					}
+					headers = (rows[0] || []).map((h: any) => String(h || '').trim())
+					dataRowsCount = rows.slice(1).filter(r => Array.isArray(r) ? r.some((c: any) => String(c || '').trim() !== '') : Boolean(r)).length
+
+					// validate header names
+					const allowed = ['category_id', 'name', 'description', 'variant_name', 'price', 'stock', 'image_url']
+					const normalized = headers.map(h => (h || '').toLowerCase().replace(/\s+/g, '_'))
+					for (const h of normalized) {
+						if (!h) continue
+						if (!allowed.includes(h)) {
+							setState({ file, error: `Header tidak valid: ${h}` })
+							return
+						}
+					}
+
+					// validate rows for required fields (category_id, name)
+					const headerMap = normalized
+					for (let i = 1; i < rows.length; i++) {
+						const r = rows[i]
+						if (!r || (Array.isArray(r) && r.every((c: any) => String(c || '').trim() === ''))) continue
+						const obj: Record<string, string> = {}
+						for (let c = 0; c < headerMap.length; c++) {
+							const key = headerMap[c]
+							if (!key) continue
+							obj[key] = String(r[c] || '').trim()
+						}
+						if (!obj['category_id'] || !obj['name']) {
+							setState({ file, error: `Isi file tidak valid pada baris ${i + 1}` })
+							return
+						}
+					}
+				} catch (e) {
+					setState({ file, error: 'Gagal membaca file Excel' })
+					return
+				}
+			} else {
+				setState({ file, error: 'Format tidak didukung. Hanya CSV atau Excel.' })
+				return
+			}
+
+			// Basic header + data validation
+			if (!headers || headers.length === 0 || dataRowsCount === 0) {
+				setState({ file, error: 'Isi file tidak valid' })
+				return
+			}
+
+			// If valid, proceed to import
+			await onImport?.(file)
 			onClose()
 			setState({})
 		} catch (err: any) {

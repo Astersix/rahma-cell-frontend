@@ -23,6 +23,7 @@ const ProductDetailPage = () => {
 	const [variants, setVariants] = useState<ProductVariant[]>([])
 	const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null)
 	const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null)
+	const [allImages, setAllImages] = useState<string[]>([])
 	const [qty, setQty] = useState<number>(1)
 	const token = useAuthStore(s => s.token || undefined)
 	const [actionMsg, setActionMsg] = useState<string | null>(null)
@@ -44,6 +45,16 @@ const ProductDetailPage = () => {
 				setProduct(p)
 				const vs = vres.data || []
 				setVariants(vs)
+				// Collect all images from all variants (unique, preserve order)
+				const imgs: string[] = []
+				for (const v of vs) {
+					if (Array.isArray(v.product_image)) {
+						for (const im of v.product_image) {
+							if (im?.image_url && !imgs.includes(im.image_url)) imgs.push(im.image_url)
+						}
+					}
+				}
+				setAllImages(imgs)
 				// Fetch category name for the product
 				if (p?.category_id) {
 					try {
@@ -58,7 +69,8 @@ const ProductDetailPage = () => {
 				const first = vs[0]
 				const firstThumb = first?.product_image?.find((img) => img.is_thumbnail)?.image_url || first?.product_image?.[0]?.image_url || null
 				setSelectedVariantId(first?.id || null)
-				setSelectedImageUrl(firstThumb || null)
+				// prefer variant first thumb, fallback to global first image
+				setSelectedImageUrl(firstThumb || imgs[0] || null)
 				setQty(1)
 			} catch (err: any) {
 				if (!canceled) setError(err?.message || 'Gagal memuat detail produk')
@@ -224,24 +236,25 @@ const ProductDetailPage = () => {
 								)}
 							</Card>
 							<div className="mt-3 grid grid-cols-5 gap-3">
-								{(selectedVariant?.product_image || []).map((img, idx) => (
-									<button
-										key={img.id || idx}
-										className={`rounded-md ${selectedImageUrl === img.image_url ? 'ring-1 ring-red-500' : ''}`}
-										onClick={() => setSelectedImageUrl(img.image_url)}
-									>
-										<div className="h-16 w-full overflow-hidden rounded-md bg-neutral-100">
-											<img src={img.image_url} alt={`img-${idx}`} className="h-full w-full object-cover" />
-										</div>
-									</button>
-								))}
-								{(!selectedVariant || !selectedVariant.product_image || selectedVariant.product_image.length === 0) && (
-									Array.from({ length: 5 }).map((_, idx) => (
-										<Card key={idx} className={idx === 0 ? 'ring-1 ring-red-500' : ''}>
-											<div className="h-16 w-full rounded-md bg-neutral-100 text-center text-[11px] leading-16 text-neutral-400">Image {idx + 1}</div>
-										</Card>
-									))
-								)}
+											{allImages.length > 0 ? (
+												allImages.map((url, idx) => (
+													<button
+														key={url || idx}
+														className={`rounded-md ${selectedImageUrl === url ? 'ring-1 ring-red-500' : ''}`}
+														onClick={() => setSelectedImageUrl(url)}
+													>
+														<div className="h-16 w-full overflow-hidden rounded-md bg-neutral-100">
+															<img src={url} alt={`img-${idx}`} className="h-full w-full object-cover" />
+														</div>
+													</button>
+												))
+											) : (
+												Array.from({ length: 5 }).map((_, idx) => (
+													<Card key={idx} className={idx === 0 ? 'ring-1 ring-red-500' : ''}>
+														<div className="h-16 w-full rounded-md bg-neutral-100 text-center text-[11px] leading-16 text-neutral-400">Image {idx + 1}</div>
+													</Card>
+												))
+											)}
 							</div>
 						</div>
 

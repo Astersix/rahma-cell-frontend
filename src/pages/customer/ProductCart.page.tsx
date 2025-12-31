@@ -55,7 +55,8 @@ const ProductCartPage = () => {
 				
 				if (!cancelled) {
 					setItems(list)
-					setSelected(list.map(i => i.id))
+					// only select items that have stock > 0
+					setSelected(list.filter(i => (Number(i.product_variant?.stock) || 0) > 0).map(i => i.id))
 				}
 			} catch (err: any) {
 				if (!cancelled) setError(err?.message || 'Gagal memuat keranjang')
@@ -103,6 +104,14 @@ const ProductCartPage = () => {
 			ensureImages()
 			return () => { cancelled = true }
 		}, [items])
+
+	// ensure selected list excludes items that are out of stock whenever items update
+	useEffect(() => {
+		setSelected(prev => prev.filter(id => {
+			const it = items.find(i => i.id === id)
+			return !!it && (Number(it.product_variant?.stock) || 0) > 0
+		}))
+	}, [items])
 
 
 	function toggleSelect(key: string) {
@@ -169,16 +178,22 @@ const ProductCartPage = () => {
 										const price = Number(item.product_variant?.price) || 0
 										const lineTotal = price * item.quantity
 										const showLoader = loadingImages[item.id]
+										const stock = Number(item.product_variant?.stock) || 0
+										const isOutOfStock = stock === 0
 										return (
 											<tr key={item.id} className="align-top">
 												<td className="px-4 py-4">
 													<div className="flex items-start gap-3">
-														<input
-															type="checkbox"
-															className="mt-1 h-4 w-4 rounded border-neutral-300 text-red-600 focus:ring-red-500"
-															checked={selected.includes(item.id)}
-															onChange={() => toggleSelect(item.id)}
-														/>
+														{(Number(item.product_variant?.stock) || 0) > 0 ? (
+															<input
+																type="checkbox"
+																className="mt-1 h-4 w-4 rounded border-neutral-300 text-red-600 focus:ring-red-500"
+																checked={selected.includes(item.id)}
+																onChange={() => toggleSelect(item.id)}
+															/>
+														) : (
+															<span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">Stok telah habis</span>
+														)}
 														{imageUrl ? (
 															<div className="relative h-14 w-14 overflow-hidden rounded-md bg-neutral-100">
 																<img src={imageUrl} alt={displayName} className="h-full w-full object-cover" />
@@ -199,16 +214,17 @@ const ProductCartPage = () => {
 												<td className="px-4 py-4 text-neutral-800">{formatIDR(price)}</td>
 												<td className="px-4 py-4">
 												<div className="flex flex-col items-start">
-													<div className="flex items-center">
+														<div className="flex items-center">
 														<button
-															className="h-6 w-6 rounded border border-neutral-300 text-xs hover:bg-neutral-100"
+															className={`h-6 w-6 rounded border text-xs ${isOutOfStock ? 'border-neutral-200 text-neutral-300 cursor-not-allowed' : 'border-neutral-300 hover:bg-neutral-100'}`}
 															onClick={() => dec(item)}
+															disabled={isOutOfStock}
 														>−</button>
 														<div className="mx-2 min-w-6 text-center text-neutral-800">{item.quantity}</div>
 														<button
-															className={`h-6 w-6 rounded border text-xs ${item.quantity >= (Number(item.product_variant?.stock) || 0) ? 'border-neutral-200 text-neutral-300 cursor-not-allowed' : 'border-neutral-300 hover:bg-neutral-100'}`}
+															className={`h-6 w-6 rounded border text-xs ${isOutOfStock || item.quantity >= stock ? 'border-neutral-200 text-neutral-300 cursor-not-allowed' : 'border-neutral-300 hover:bg-neutral-100'}`}
 															onClick={() => inc(item)}
-															disabled={item.quantity >= (Number(item.product_variant?.stock) || 0)}
+															disabled={isOutOfStock || item.quantity >= stock}
 														>+</button>
 													</div>
 													{item.quantity >= (Number(item.product_variant?.stock) || 0) && (
@@ -269,6 +285,9 @@ const ProductCartPage = () => {
 								<div className="flex items-center justify-between">
 									<span>Total Sementara</span>
 									<span className="font-semibold text-neutral-900">{formatIDR(totalPrice)}</span>
+								</div>
+								<div className="flex items-center justify-end pb-3">
+									<span className='text-[5px] text-red-500'>Ongkos Kirim dapat dibayarkan tunai ke kurir</span>
 								</div>
 							</div>
 							<Button

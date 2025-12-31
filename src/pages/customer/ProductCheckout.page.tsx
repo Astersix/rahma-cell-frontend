@@ -27,6 +27,7 @@ const ProductCheckoutPage = () => {
 	const [addresses, setAddresses] = useState<Address[]>([])
 	const [addrLoading, setAddrLoading] = useState(false)
 	const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+	const [errorPopup, setErrorPopup] = useState<{ open: boolean; title?: string; description?: string }>({ open: false })
 
 	useEffect(() => {
 		async function loadAddresses() {
@@ -169,7 +170,12 @@ const ProductCheckoutPage = () => {
 				setShowSuccessPopup(true)
 			}
 		} catch (e: any) {
-			alert(e?.message || 'Gagal membuat pesanan')
+			const msg = e?.message || 'Gagal membuat pesanan'
+			if (e?.status === 400) {
+				setErrorPopup({ open: true, description: 'Stok tidak tersedia' })
+			} else {
+				setErrorPopup({ open: true, title: 'Gagal membuat pesanan', description: msg })
+			}
 		} finally {
 			setPlacing(false)
 		}
@@ -330,6 +336,24 @@ const ProductCheckoutPage = () => {
 						setShowSuccessPopup(false)
 						navigate('/orders')
 					}
+				}}
+				showCloseButton={true}
+			/>
+			<PopupModal
+				open={errorPopup.open}
+				onClose={() => {
+					setErrorPopup({ open: false })
+					navigate('/cart', { replace: true })
+				}}
+				icon="error"
+				title={errorPopup.title}
+				description={errorPopup.description}
+				primaryButton={{
+					label: 'Tutup',
+					onClick: () => {
+						setErrorPopup({ open: false })
+						navigate('/cart', { replace: true })
+					},
 				}}
 				showCloseButton={true}
 			/>

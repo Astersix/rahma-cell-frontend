@@ -61,15 +61,19 @@ const HomePage = () => {
 						const vres = await getVariantsByProductId(String(p.id), token || undefined)
 						const variants: ProductVariant[] = vres.data || []
 						let thumb: string | undefined
+						let outOfStock = false
+						if (Array.isArray(variants) && variants.length > 0) {
+							outOfStock = variants.every(v => (Number(v.stock) || 0) <= 0)
+						}
 						for (const v of variants) {
 							if (Array.isArray(v.product_image) && v.product_image.length) {
 								const t = v.product_image.find(img => img.is_thumbnail) || v.product_image[0]
 								if (t?.image_url) { thumb = t.image_url; break }
 							}
 						}
-						return { ...p, thumbnail_url: thumb }
+						return { ...p, thumbnail_url: thumb, out_of_stock: outOfStock }
 					} catch {
-						return { ...p }
+						return { ...p, out_of_stock: false }
 					}
 				}))
 				// Cap to maximum PAGE_SIZE items displayed per page
@@ -114,6 +118,12 @@ const HomePage = () => {
 	// Backend now handles search, so just use products directly
 	const filtered = useMemo(() => products, [products])
 
+	// Truncate long search queries to avoid layout overflow
+	const truncate = (s: string, max = 20) => {
+		if (!s) return s
+		return s.length > max ? `${s.slice(0, max)}....` : s
+	}
+
 		return (
 		<CustomerLayout>
 			<div className="mx-auto max-w-7xl">
@@ -133,7 +143,7 @@ const HomePage = () => {
 					<div className="space-y-6">
 						<div>
 							<h2 className="text-xl font-semibold">
-								{searchQuery ? `Hasil Pencarian "${searchQuery}"` : 'Produk Terbaru'}
+								{searchQuery ? `Hasil Pencarian "${truncate(searchQuery, 20)}"` : 'Produk Terbaru'}
 							</h2>
 							<p className="mt-1 text-sm text-neutral-600">
 								{searchQuery 
@@ -142,17 +152,22 @@ const HomePage = () => {
 							</p>
 						</div>
 						{errorProducts && <p className="text-sm text-red-600">{errorProducts}</p>}
-						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-							{filtered.map((product: any) => {
+
+						{filtered.length === 0 ? (
+							<p className="text-center text-sm text-neutral-600">Produk tidak ditemukan</p>
+						) : (
+							<>
+								<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+									{filtered.map((product: any) => {
 								const pid = (product as any)?.id ?? (product as any)?._id ?? (product as any)?.product_id
 								const card = (
 								<Card className="p-0 overflow-hidden">
 									{product.thumbnail_url ? (
-										<div className="h-32 w-full overflow-hidden bg-neutral-100">
+										<div className={`h-32 w-full overflow-hidden bg-neutral-100 ${product.out_of_stock ? 'opacity-60' : ''}`}>
 											<img src={product.thumbnail_url} alt={product.name} className="h-full w-full object-cover" />
 										</div>
 									) : (
-										<div className="h-32 w-full bg-neutral-100 flex items-center justify-center text-neutral-400 text-xs">
+										<div className={`h-32 w-full bg-neutral-100 flex items-center justify-center text-neutral-400 text-xs ${product.out_of_stock ? 'opacity-60' : ''}`}>
 											<span>{product.name.slice(0, 16)}</span>
 										</div>
 									)}
@@ -160,6 +175,9 @@ const HomePage = () => {
 										<h3 className="text-xs font-medium text-neutral-700 line-clamp-2 min-h-[2.2rem]">{product.name}</h3>
 										<p className="text-[11px] text-neutral-500 line-clamp-2 min-h-[2.2rem]">{product.description}</p>
 										{/* pricetag removed */}
+										{product.out_of_stock && (
+											<div className="mt-1 text-[11px] font-medium text-amber-800">Stok Habis</div>
+										)}
 									</div>
 								</Card>
 								)
@@ -174,45 +192,47 @@ const HomePage = () => {
 								)
 							})}
 						</div>
-						<div className="flex items-center justify-end px-1 sm:px-0 py-3 text-xs text-neutral-600">
-							<div className="flex items-center gap-1">
-							<ButtonIcon
-								aria-label="Prev"
-								icon="arrow-left"
-								size="sm"
-								variant="light"
-								className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
-								onClick={() => setPage(p => Math.max(1, p - 1))}
-								disabled={page === 1 || loadingProducts}
-							/>
-								{[page - 1, page, page + 1]
-									.filter(pnum => pnum >= 1 && pnum <= totalPages)
-									.map((pnum) => {
-										const active = pnum === page
-										return (
-											<button
-												key={pnum}
-												onClick={() => setPage(pnum)}
-												className={active
-													? 'h-8 w-8 rounded-md bg-red-500 text-white'
-													: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
-												disabled={loadingProducts}
-											>
-												{pnum}
-											</button>
-										)
-									})}
-							<ButtonIcon
-								aria-label="Next"
-								icon="arrow-right"
-								size="sm"
-								variant="light"
-								className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
-								onClick={() => setPage(p => p + 1)}
-									disabled={!hasNext || loadingProducts}
-							/>
-							</div>
-						</div>
+								<div className="flex items-center justify-end px-1 sm:px-0 py-3 text-xs text-neutral-600">
+									<div className="flex items-center gap-1">
+									<ButtonIcon
+										aria-label="Prev"
+										icon="arrow-left"
+										size="sm"
+										variant="light"
+										className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
+										onClick={() => setPage(p => Math.max(1, p - 1))}
+										disabled={page === 1 || loadingProducts}
+									/>
+										{[page - 1, page, page + 1]
+											.filter(pnum => pnum >= 1 && pnum <= totalPages)
+											.map((pnum) => {
+												const active = pnum === page
+												return (
+													<button
+														key={pnum}
+														onClick={() => setPage(pnum)}
+														className={active
+															? 'h-8 w-8 rounded-md bg-red-500 text-white'
+															: 'h-8 w-8 rounded-md border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'}
+														disabled={loadingProducts}
+													>
+														{pnum}
+													</button>
+												)
+											})}
+									<ButtonIcon
+										aria-label="Next"
+										icon="arrow-right"
+										size="sm"
+										variant="light"
+										className="h-8 w-8 p-0 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 disabled:opacity-50"
+										onClick={() => setPage(p => p + 1)}
+											disabled={!hasNext || loadingProducts}
+									/>
+									</div>
+								</div>
+							</>
+						)}
 					</div>
 				</div>
 			</div>
